@@ -4,13 +4,11 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.identity.models import IdentityOption
-from app.identity.provider import IdentityProvider
-from app.identity.session import IdentityNotFoundError, SessionStore
+from app.identity.runtime import identity_provider, session_store
+from app.identity.session import IdentityNotFoundError
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-identity_provider = IdentityProvider()
-session_store = SessionStore(identity_provider)
 
 
 class CreateSessionRequest(BaseModel):

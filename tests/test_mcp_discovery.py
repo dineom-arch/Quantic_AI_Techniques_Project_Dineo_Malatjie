@@ -43,7 +43,18 @@ def test_streamable_http_mcp_discovery_and_search(built_rag_service) -> None:
         client_class = meridian_mcp_client_class()
         mcp_client = client_class(f"http://127.0.0.1:{port}/mcp/")
         tools = asyncio.run(mcp_client.discover_tools())
-        assert [tool.name for tool in tools] == ["search_knowledge_documents"]
+        assert {tool.name for tool in tools} == {
+            "search_knowledge_documents",
+            "lookup_employee_profile",
+            "check_pto_balance",
+            "lookup_benefits_status",
+            "lookup_active_assignment",
+            "resolve_approval_role",
+            "lookup_travel_authorization",
+            "get_mock_travel_booking",
+            "get_per_diem_rate",
+            "get_mock_expense_claim",
+        }
         tool_result = asyncio.run(
             mcp_client.call_tool(
                 "search_knowledge_documents",

@@ -10,14 +10,15 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 
-def _knowledge_registrar():
-    path = Path(__file__).resolve().parent / "tools" / "knowledge.py"
-    spec = importlib.util.spec_from_file_location("_meridian_mcp_knowledge_tools", path)
+def _tool_registrar(filename: str, registrar_name: str):
+    path = Path(__file__).resolve().parent / "tools" / filename
+    module_name = f"_meridian_mcp_{path.stem}_tools"
+    spec = importlib.util.spec_from_file_location(module_name, path)
     if spec is None or spec.loader is None:  # pragma: no cover
-        raise RuntimeError(f"Unable to load MCP knowledge tools: {path}")
+        raise RuntimeError(f"Unable to load MCP tools: {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.register_knowledge_tools
+    return getattr(module, registrar_name)
 
 
 def create_mcp_server() -> tuple[FastMCP, object]:
@@ -29,7 +30,14 @@ def create_mcp_server() -> tuple[FastMCP, object]:
         json_response=True,
         streamable_http_path="/",
     )
-    _knowledge_registrar()(server)
+    for filename, registrar_name in (
+        ("knowledge.py", "register_knowledge_tools"),
+        ("employee.py", "register_employee_tools"),
+        ("assignment.py", "register_assignment_tools"),
+        ("travel.py", "register_travel_tools"),
+        ("expenses.py", "register_expense_tools"),
+    ):
+        _tool_registrar(filename, registrar_name)(server)
     return server, server.streamable_http_app()
 
 
