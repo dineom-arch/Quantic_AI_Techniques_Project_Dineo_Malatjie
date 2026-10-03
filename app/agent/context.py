@@ -1,6 +1,8 @@
-"""Request context models for later workflow orchestration."""
+"""Authenticated request context for deterministic evidence orchestration."""
 
-from pydantic import BaseModel, ConfigDict
+from datetime import date
+
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.identity.models import EnterpriseIdentity
 
@@ -12,4 +14,5 @@ class AgentContext(BaseModel):
     identity: EnterpriseIdentity
     message: str
     confirm_action: bool = False
+    as_of: date = Field(default_factory=date.today)
 

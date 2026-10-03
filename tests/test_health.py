@@ -40,7 +40,7 @@ def test_health_reports_ready_when_rag_is_loaded(built_rag_service) -> None:
     }
 
 
-def test_chat_placeholder_uses_canonical_v12_schema() -> None:
+def test_chat_orchestration_uses_canonical_v12_schema() -> None:
     with TestClient(create_app()) as client:
         session = client.post(
             "/auth/session", json={"corporate_username": "naledi.molefe"}
@@ -53,7 +53,8 @@ def test_chat_placeholder_uses_canonical_v12_schema() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert set(payload) == {"answer", "status", "citations", "source_snippets", "tool_trace"}
-    assert payload["status"] == "insufficient_evidence"
-    assert payload["citations"] == []
-    assert payload["source_snippets"] == []
+    assert payload["status"] == "answered"
+    assert payload["citations"]
+    assert payload["source_snippets"]
+    assert "final grounded policy-answer synthesis is not implemented" in payload["answer"].lower()
 
