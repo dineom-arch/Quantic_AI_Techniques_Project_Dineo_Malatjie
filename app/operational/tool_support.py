@@ -25,6 +25,17 @@ def resolve_identity(ctx: Context) -> EnterpriseIdentity | None:
         return None
 
 
+def resolve_session(ctx: Context) -> tuple[str | None, EnterpriseIdentity | None]:
+    request = ctx.request_context.request
+    session_id = request.headers.get(SESSION_HEADER) if request is not None else None
+    if not session_id:
+        return None, None
+    try:
+        return session_id, session_store.resolve(session_id)
+    except SessionNotFoundError:
+        return session_id, None
+
+
 def require_self(target: str, ctx: Context) -> tuple[EnterpriseIdentity | None, dict[str, Any] | None]:
     identity = resolve_identity(ctx)
     if identity is None:

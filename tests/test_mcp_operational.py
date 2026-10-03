@@ -11,6 +11,7 @@ import pytest
 import uvicorn
 
 from app.identity.runtime import session_store
+from app.actions.store import get_mock_action_store
 from app.integrations.mcp_runtime import meridian_mcp_client_class
 from app.main import create_app
 
@@ -28,6 +29,7 @@ def _payload(result) -> dict:
 @pytest.fixture(scope="module")
 def operational_mcp():
     session_store.reset()
+    get_mock_action_store().reset()
     port = _free_port()
     server = uvicorn.Server(
         uvicorn.Config(create_app(), host="127.0.0.1", port=port, log_level="error")
@@ -55,6 +57,7 @@ def operational_mcp():
     server.should_exit = True
     thread.join(timeout=10)
     session_store.reset()
+    get_mock_action_store().reset()
     assert not thread.is_alive()
 
 
@@ -175,3 +178,30 @@ def test_identity_privacy_missing_and_invalid_requests(operational_mcp) -> None:
         {"target": "self", "as_of": "next Thursday"},
     )
     assert invalid["status"] == "invalid_request"
+
+
+def test_mock_action_tools_are_non_sending_and_confirmation_gated(operational_mcp) -> None:
+    draft = _call(operational_mcp, "draft_hr_email", {
+        "purpose": "guidance on a gift",
+        "recipient_role": "Ethics & Compliance",
+        "supported_facts": ["The procedure identifies this support route."],
+    })
+    assert draft["status"] == "ok"
+    assert draft["draft"]["status"] == "draft"
+    assert "no email was sent" in draft["message"].lower()
+
+    ticket = _call(operational_mcp, "create_mock_hr_ticket", {
+        "category": "Ethics & Compliance support",
+        "summary": "Unresolved gift question",
+        "confirmed": False,
+    })
+    assert ticket["status"] == "confirmation_required"
+    assert get_mock_action_store().records() == []
+
+    travel = _call(operational_mcp, "create_mock_travel_request", {
+        "request_type": "personal_extension",
+        "details": {"summary": "Personal extension"},
+        "confirmed": False,
+    })
+    assert travel["status"] == "confirmation_required"
+    assert get_mock_action_store().records() == []

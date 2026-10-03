@@ -6,7 +6,7 @@ import json
 from time import perf_counter
 from typing import Any
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from app.agent.context import AgentContext
 from app.agent.evidence import OrchestrationResult
@@ -31,12 +31,20 @@ class VerifiedCitation(BaseModel):
     snippet: str
 
 
+class ResolvedApproval(BaseModel):
+    approval_role: str
+    display_name: str | None = None
+    job_title: str | None = None
+    status: str
+
+
 class GroundedAnswer(BaseModel):
     answer: str
     status: str
     citations: list[VerifiedCitation]
     source_snippets: list[VerifiedCitation]
     trace_events: list[TraceEvent]
+    resolved_approvals: list[ResolvedApproval] = Field(default_factory=list)
 
 
 SYSTEM_PROMPT = """You are the bounded synthesis component for Meridian Compass.
@@ -168,7 +176,7 @@ class GroundedSynthesizer:
                 citations=citations, source_snippets=citations, trace_events=[],
             )
 
-        approval_claims, approval_traces = await self._resolve_approvals(
+        approval_claims, approval_traces, resolved_approvals = await self._resolve_approvals(
             draft.approval_requests, supported, catalog, len(orchestration.tool_trace)
         )
         final_status = (
@@ -191,6 +199,7 @@ class GroundedSynthesizer:
             citations=citations,
             source_snippets=citations,
             trace_events=approval_traces,
+            resolved_approvals=resolved_approvals,
         )
 
     @staticmethod
@@ -240,7 +249,7 @@ class GroundedSynthesizer:
         verified: list[VerifiedClaim],
         catalog: dict[str, SourceRecord],
         sequence_start: int,
-    ) -> tuple[list[str], list[TraceEvent]]:
+    ) -> tuple[list[str], list[TraceEvent], list[ResolvedApproval]]:
         by_id = {item.claim.claim_id: item for item in verified if item.supported}
         allowed_assignments = {
             value
@@ -250,6 +259,7 @@ class GroundedSynthesizer:
         }
         claims: list[str] = []
         traces: list[TraceEvent] = []
+        resolutions: list[ResolvedApproval] = []
         for offset, request in enumerate(requests, start=1):
             verified_claim = by_id.get(request.claim_id)
             role_phrase = request.approval_role.replace("_", " ")
@@ -284,13 +294,21 @@ class GroundedSynthesizer:
                 )
             )
             if status == "ok" and payload.get("display_name") and payload.get("job_title"):
+                resolutions.append(ResolvedApproval(
+                    approval_role=request.approval_role,
+                    display_name=str(payload["display_name"]),
+                    job_title=str(payload["job_title"]), status=status,
+                ))
                 claims.append(
                     f"{payload['display_name']} ({payload['job_title']}) is the recorded "
                     f"{role_phrase} for this request."
                 )
             elif status == "not_found":
+                resolutions.append(ResolvedApproval(
+                    approval_role=request.approval_role, status=status,
+                ))
                 claims.append(
                     f"The required role is {role_phrase}, but authorised structured data "
                     "does not identify a named person."
                 )
-        return claims, traces
+        return claims, traces, resolutions

@@ -54,6 +54,9 @@ def test_streamable_http_mcp_discovery_and_search(built_rag_service) -> None:
             "get_mock_travel_booking",
             "get_per_diem_rate",
             "get_mock_expense_claim",
+            "draft_hr_email",
+            "create_mock_hr_ticket",
+            "create_mock_travel_request",
         }
         tool_result = asyncio.run(
             mcp_client.call_tool(

@@ -399,9 +399,10 @@ def test_personal_extension_flagship_preserves_fares(grounded_client) -> None:
         "message": "Can I stay in Nairobi until 20 October 2026 after my assignment and change my return flight?",
     })
     payload = response.json()
-    assert payload["status"] == "answered"
+    assert payload["status"] == "action_confirmation_required"
     assert all(value in payload["answer"] for value in ("8400", "9650", "1250"))
     assert "Amara Okafor" in payload["answer"]
+    assert "mock personal travel-extension request is ready" in payload["answer"]
     assert {item["document_id"] for item in payload["citations"]} >= {"MSG-POL-003", "MSG-PROC-003"}
 
 

@@ -36,6 +36,7 @@ def create_mcp_server() -> tuple[FastMCP, object]:
         ("assignment.py", "register_assignment_tools"),
         ("travel.py", "register_travel_tools"),
         ("expenses.py", "register_expense_tools"),
+        ("actions.py", "register_action_tools"),
     ):
         _tool_registrar(filename, registrar_name)(server)
     return server, server.streamable_http_app()

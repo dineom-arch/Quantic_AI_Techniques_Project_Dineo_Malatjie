@@ -7,6 +7,7 @@ import httpx
 from pydantic import BaseModel, Field
 
 from app.agent.context import AgentContext
+from app.agent.actions import ActionWorkflowCoordinator
 from app.agent.orchestrator import EvidenceOrchestrator
 from app.agent.synthesis import GroundedSynthesizer
 from app.api.auth import session_store
@@ -81,7 +82,7 @@ PUBLIC_STATUS = {
 
 @router.post("/chat", response_model=ChatResponse, response_model_exclude_none=True)
 async def chat(chat_request: ChatRequest, request: Request) -> ChatResponse:
-    """Collect authoritative evidence without performing final policy synthesis."""
+    """Return grounded answers and safely coordinate demonstration-only actions."""
 
     try:
         identity = session_store.resolve(chat_request.session_id)
@@ -100,13 +101,27 @@ async def chat(chat_request: ChatRequest, request: Request) -> ChatResponse:
         mcp_client = meridian_mcp_client_class()(
             endpoint, session_id=chat_request.session_id, http_client=http_client
         )
-        result = await EvidenceOrchestrator(mcp_client).run(
-            AgentContext(
-                session_id=chat_request.session_id,
-                identity=identity,
-                message=chat_request.message,
-                confirm_action=chat_request.confirm_action,
+        context = AgentContext(
+            session_id=chat_request.session_id,
+            identity=identity,
+            message=chat_request.message,
+            confirm_action=chat_request.confirm_action,
+        )
+        action_coordinator = ActionWorkflowCoordinator(mcp_client)
+        confirmation_result = await action_coordinator.before_grounding(context)
+        if confirmation_result is not None:
+            return ChatResponse(
+                answer=confirmation_result.answer,
+                status=confirmation_result.status,
+                citations=[Citation(**item.model_dump()) for item in confirmation_result.citations],
+                source_snippets=[
+                    SourceSnippet(document_id=item.document_id, section=item.section, snippet=item.snippet)
+                    for item in confirmation_result.source_snippets
+                ],
+                tool_trace=[ToolTraceEntry(**item.model_dump()) for item in confirmation_result.trace_events],
             )
+        result = await EvidenceOrchestrator(mcp_client).run(
+            context
         )
         provider = request.app.state.llm_provider
         if provider is None and result.status == "sufficient_evidence":
@@ -118,19 +133,22 @@ async def chat(chat_request: ChatRequest, request: Request) -> ChatResponse:
         else:
             try:
                 grounded = await GroundedSynthesizer(provider, mcp_client).synthesize(
-                    AgentContext(
-                        session_id=chat_request.session_id,
-                        identity=identity,
-                        message=chat_request.message,
-                        confirm_action=chat_request.confirm_action,
-                    ),
-                    result,
+                    context, result,
                 )
                 answer = grounded.answer
                 grounded_status = grounded.status
                 verified_citations = grounded.citations
                 verified_snippets = grounded.source_snippets
                 synthesis_trace = grounded.trace_events
+                action_result = await action_coordinator.after_grounding(
+                    context, result, grounded,
+                )
+                if action_result is not None:
+                    answer = action_result.answer
+                    grounded_status = action_result.status
+                    verified_citations = action_result.citations
+                    verified_snippets = action_result.source_snippets
+                    synthesis_trace = [*synthesis_trace, *action_result.trace_events]
             except Exception:
                 answer = "The configured language-model service is unavailable. No policy answer was generated."
                 grounded_status = "tool_error"
