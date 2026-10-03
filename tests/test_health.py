@@ -53,8 +53,8 @@ def test_chat_orchestration_uses_canonical_v12_schema() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert set(payload) == {"answer", "status", "citations", "source_snippets", "tool_trace"}
-    assert payload["status"] == "answered"
-    assert payload["citations"]
-    assert payload["source_snippets"]
-    assert "final grounded policy-answer synthesis is not implemented" in payload["answer"].lower()
+    assert payload["status"] == "tool_error"
+    assert payload["citations"] == []
+    assert payload["source_snippets"] == []
+    assert "no policy answer was generated" in payload["answer"].lower()
 

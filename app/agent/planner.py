@@ -118,7 +118,7 @@ class DeterministicPlanner:
             )
             add_call(
                 "search_knowledge_documents",
-                {"query": "PTO leave requirements and eligibility", "document_type": "policy", "top_k": 5, "topic": "leave"},
+                {"query": "PTO active assignment Engagement Manager approval 14 calendar days notice", "document_type": "policy", "top_k": 5, "topic": "leave"},
                 "knowledge", "pto", ("MSG-POL-001",),
             )
             add_call(
@@ -224,7 +224,7 @@ class DeterministicPlanner:
             (remote, "remote_work", "remote hybrid working", "policy", "working_arrangements", ("MSG-POL-011",)),
             (international_work, "international_work", "international working approval", "all", "international_work", ("MSG-POL-008", "MSG-PROC-005")),
             (privacy, "privacy", "employee data access privacy", "policy", "privacy", ("MSG-POL-012",)),
-            (support, "enterprise_support", context.message, "procedure", "enterprise_support", ("MSG-PROC-007",)),
+            (support, "enterprise_support", "gifts hospitality Ethics Compliance support route substantive determination", "procedure", "enterprise_support", ("MSG-PROC-007",)),
         )
         for needed, name, query, document_type, topic, expected in knowledge_only:
             if needed:

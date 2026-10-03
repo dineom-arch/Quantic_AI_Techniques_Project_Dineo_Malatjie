@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.agent.context import AgentContext
 from app.agent.orchestrator import EvidenceOrchestrator
+from app.agent.synthesis import GroundedSynthesizer
 from app.api.auth import session_store
 from app.identity.session import SessionNotFoundError
 from app.integrations.mcp_runtime import meridian_mcp_client_class
@@ -107,42 +108,46 @@ async def chat(chat_request: ChatRequest, request: Request) -> ChatResponse:
                 confirm_action=chat_request.confirm_action,
             )
         )
-
-    knowledge = [item for item in result.evidence.items if item.evidence_type == "knowledge"]
-    citations: list[Citation] = []
-    seen: set[tuple[str, str]] = set()
-    for item in knowledge:
-        key = (item.document_id or "", item.section or "")
-        if key in seen:
-            continue
-        seen.add(key)
-        citations.append(
-            Citation(
-                document_id=item.document_id or "",
-                title=item.document_title or "",
-                section=item.section or "",
-                snippet=item.snippet or "",
-            )
-        )
-    if result.status == "sufficient_evidence":
-        answer = (
-            "Authoritative operational and knowledge evidence was collected. "
-            "Final grounded policy-answer synthesis is not implemented in Phase 3B."
-        )
-    else:
-        answer = result.message
+        provider = request.app.state.llm_provider
+        if provider is None and result.status == "sufficient_evidence":
+            answer = "The configured language-model service is unavailable. No policy answer was generated."
+            grounded_status = "tool_error"
+            verified_citations = []
+            verified_snippets = []
+            synthesis_trace = []
+        else:
+            try:
+                grounded = await GroundedSynthesizer(provider, mcp_client).synthesize(
+                    AgentContext(
+                        session_id=chat_request.session_id,
+                        identity=identity,
+                        message=chat_request.message,
+                        confirm_action=chat_request.confirm_action,
+                    ),
+                    result,
+                )
+                answer = grounded.answer
+                grounded_status = grounded.status
+                verified_citations = grounded.citations
+                verified_snippets = grounded.source_snippets
+                synthesis_trace = grounded.trace_events
+            except Exception:
+                answer = "The configured language-model service is unavailable. No policy answer was generated."
+                grounded_status = "tool_error"
+                verified_citations = []
+                verified_snippets = []
+                synthesis_trace = []
     return ChatResponse(
         answer=answer,
-        status=PUBLIC_STATUS[result.status],
-        citations=citations,
+        status=grounded_status,
+        citations=[Citation(**item.model_dump()) for item in verified_citations],
         source_snippets=[
-            SourceSnippet(
-                document_id=item.document_id or "",
-                section=item.section or "",
-                snippet=item.snippet or "",
-            )
-            for item in knowledge
+            SourceSnippet(document_id=item.document_id, section=item.section, snippet=item.snippet)
+            for item in verified_snippets
         ],
-        tool_trace=[ToolTraceEntry(**trace.model_dump()) for trace in result.tool_trace],
+        tool_trace=[
+            ToolTraceEntry(**trace.model_dump())
+            for trace in [*result.tool_trace, *synthesis_trace]
+        ],
     )
 
