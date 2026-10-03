@@ -1,4 +1,4 @@
-# Meridian Compass — Software Requirements Specification
+﻿# Meridian Compass - Software Requirements Specification
 Version 1.2
 
 ## Functional requirements
@@ -108,3 +108,4 @@ This document is **Software Requirements Specification Version 1.2** and superse
 The MCP Tool Contract plus v1.2 alignment addendum controls MCP tools.
 The Codex Master Build Prompt v1.2 addendum supersedes conflicting earlier API/tool-name details.
 Older evaluation datasets remain audit history only.
+
