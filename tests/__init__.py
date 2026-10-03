@@ -1,0 +1,2 @@
+"""Meridian Compass automated tests."""
+

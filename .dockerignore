@@ -1,0 +1,11 @@
+.git
+.github
+.env
+.pytest_cache
+__pycache__
+*.py[cod]
+*.log
+.venv
+runtime_data
+evaluation/results
+
