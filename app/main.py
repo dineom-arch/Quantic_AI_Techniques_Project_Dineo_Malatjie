@@ -6,10 +6,13 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.api.auth import router as auth_router
 from app.api.chat import router as chat_router
 from app.api.health import router as health_router
+from app.api.ui import router as ui_router
+from app.config import REPOSITORY_ROOT
 from app.integrations.mcp_runtime import create_mcp_server
 from app.llm.provider import get_llm_provider
 
@@ -33,6 +36,11 @@ def create_app(llm_provider=_DEFAULT_PROVIDER) -> FastAPI:
     application.include_router(auth_router)
     application.include_router(chat_router)
     application.include_router(health_router)
+    application.include_router(ui_router)
+    application.mount(
+        "/static", StaticFiles(directory=REPOSITORY_ROOT / "app" / "static"),
+        name="static",
+    )
     application.mount("/mcp", mcp_app)
     application.state.mcp_server = mcp_server
     application.state.llm_provider = (

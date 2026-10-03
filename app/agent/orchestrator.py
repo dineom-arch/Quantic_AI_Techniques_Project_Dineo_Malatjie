@@ -19,6 +19,11 @@ class EvidenceOrchestrator:
         identity_trace = TraceEvent(
             event="authenticated_identity_loaded", status="ok",
         )
+        if plan.intent == "clarification_required":
+            return self._result(
+                context, plan, [], [identity_trace], "invalid_request",
+                "The follow-up reference is ambiguous without earlier session context.",
+            )
         if plan.intent == "out_of_scope":
             return self._result(context, plan, [], [identity_trace], "out_of_scope", "The request is outside the supported Meridian People and Travel Operations scope.")
 

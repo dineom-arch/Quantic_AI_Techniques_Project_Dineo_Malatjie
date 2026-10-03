@@ -106,10 +106,15 @@ async def chat(chat_request: ChatRequest, request: Request) -> ChatResponse:
             identity=identity,
             message=chat_request.message,
             confirm_action=chat_request.confirm_action,
+            conversation_history=session_store.history(chat_request.session_id),
         )
         action_coordinator = ActionWorkflowCoordinator(mcp_client)
         confirmation_result = await action_coordinator.before_grounding(context)
         if confirmation_result is not None:
+            session_store.record_turn(
+                chat_request.session_id, chat_request.message,
+                confirmation_result.answer, confirmation_result.status,
+            )
             return ChatResponse(
                 answer=confirmation_result.answer,
                 status=confirmation_result.status,
@@ -155,6 +160,9 @@ async def chat(chat_request: ChatRequest, request: Request) -> ChatResponse:
                 verified_citations = []
                 verified_snippets = []
                 synthesis_trace = []
+    session_store.record_turn(
+        chat_request.session_id, chat_request.message, answer, grounded_status,
+    )
     return ChatResponse(
         answer=answer,
         status=grounded_status,

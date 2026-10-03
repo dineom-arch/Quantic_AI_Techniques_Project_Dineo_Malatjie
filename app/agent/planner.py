@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 import re
 from typing import Any, Literal
 
@@ -55,7 +55,49 @@ def _mentioned_date(message: str, fallback: date) -> str:
     if written:
         year = int(written.group(3) or fallback.year)
         return date(year, MONTHS[written.group(2).casefold()], int(written.group(1))).isoformat()
+    lowered = message.casefold()
+    if "tomorrow" in lowered:
+        return (fallback + timedelta(days=1)).isoformat()
+    if "today" in lowered:
+        return fallback.isoformat()
+    weekdays = {
+        "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
+        "friday": 4, "saturday": 5, "sunday": 6,
+    }
+    assignment_weekday = re.search(
+        r"\bassignment\b.{0,50}?\b(?:next\s+)?(" + "|".join(weekdays) + r")\b",
+        lowered,
+    )
+    ordered_weekdays = (
+        [assignment_weekday.group(1)] if assignment_weekday else []
+    ) + [weekday for weekday in weekdays if not assignment_weekday or weekday != assignment_weekday.group(1)]
+    for weekday in ordered_weekdays:
+        target = weekdays[weekday]
+        if re.search(rf"\b(?:next\s+)?{weekday}\b", lowered):
+            days = (target - fallback.weekday()) % 7
+            if days == 0 or f"next {weekday}" in lowered:
+                days += 7
+            return (fallback + timedelta(days=days)).isoformat()
     return fallback.isoformat()
+
+
+FOLLOW_UP_MARKERS = (
+    "what if", "what about", "instead", "that trip", "the trip", "the assignment",
+    "the nairobi stop", "don't take pto", "do not take pto",
+)
+
+
+def _planning_text(context: AgentContext) -> tuple[str, bool]:
+    current = context.message.casefold()
+    is_follow_up = any(marker in current for marker in FOLLOW_UP_MARKERS) or bool(
+        re.match(r"^\s*(it|that|and|then)\b", current)
+    )
+    if not is_follow_up:
+        return current, False
+    if not context.conversation_history:
+        return current, True
+    prior = " ".join(turn.user_message for turn in context.conversation_history[-3:])
+    return f"{prior} {context.message}".casefold(), False
 
 
 def _references_other_identity(text: str, context: AgentContext) -> bool:
@@ -85,7 +127,12 @@ class DeterministicPlanner:
     """Maps bounded request language to evidence domains and approved tools."""
 
     async def plan(self, context: AgentContext) -> ExecutionPlan:
-        text = context.message.casefold()
+        text, ambiguous_follow_up = _planning_text(context)
+        current_text = context.message.casefold()
+        contextual_follow_up = bool(context.conversation_history) and (
+            any(marker in current_text for marker in FOLLOW_UP_MARKERS)
+            or bool(re.match(r"^\s*(it|that|and|then)\b", current_text))
+        )
         domains: list[str] = []
         calls: list[PlannedToolCall] = []
 
@@ -110,6 +157,9 @@ class DeterministicPlanner:
                     expected_document_ids=expected,
                 )
             )
+
+        if ambiguous_follow_up:
+            return ExecutionPlan(intent="clarification_required", domains=())
 
         if _external_company_policy(text):
             return ExecutionPlan(intent="out_of_scope", domains=())
@@ -147,8 +197,12 @@ class DeterministicPlanner:
             explicit_assignment or extension_situation
             or (personal_extension and "travel extension" in text)
             or (pto and mentioned_calendar_date)
+            or "another assignment" in text
         )
-        expense = any(term in text for term in ("expense", "claim", "reimburse", "reimbursement", "receipt", "cost of my"))
+        expense = any(term in text for term in (
+            "expense", "claim", "reimburse", "reimbursement", "receipt", "cost of my",
+            "company cover", "cover the full fare", "fare responsibility",
+        ))
         unsupported_cost_subject = bool(re.search(r"\bcost of my\s+.+?\s+while\b", text))
         taxi_expense = "taxi" in text or "ground transport" in text
         meal_expense = any(term in text for term in ("meal", "dinner", "lunch", "breakfast"))
@@ -209,7 +263,7 @@ class DeterministicPlanner:
             assignment_as_of = (
                 context.as_of.isoformat()
                 if personal_extension
-                else _mentioned_date(context.message, context.as_of)
+                else _mentioned_date(text, context.as_of)
             )
             add_call(
                 "lookup_active_assignment",
@@ -222,7 +276,9 @@ class DeterministicPlanner:
                 "knowledge", "assignment", ("MSG-POL-002",),
             )
 
-        broad_travel = travel and not (flight_policy and not personal_extension) and not taxi_expense
+        broad_travel = travel and (
+            contextual_follow_up or not (flight_policy and not personal_extension)
+        ) and not taxi_expense
         if broad_travel or extension_situation:
             add_domain("business_travel")
             add_call("lookup_travel_authorization", {"target": "self"}, "operational", "travel")
@@ -302,7 +358,7 @@ class DeterministicPlanner:
 
         if expense:
             add_domain("expenses")
-            expense_match = re.search(r"\bEXP-\d+\b", context.message, re.IGNORECASE)
+            expense_match = re.search(r"\bEXP-\d+\b", text, re.IGNORECASE)
             if expense_match:
                 add_call(
                     "get_mock_expense_claim",

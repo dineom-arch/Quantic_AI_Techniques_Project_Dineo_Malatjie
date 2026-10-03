@@ -193,6 +193,16 @@ class GroundedSynthesizer:
                     "job_title": context.identity.job_title,
                 },
                 "question": context.message,
+                "conversation_context": {
+                    "authority": "user_stated_non_authoritative",
+                    "recent_turns": [
+                        {
+                            "user_message": turn.user_message,
+                            "assistant_status": turn.assistant_status,
+                        }
+                        for turn in context.conversation_history[-6:]
+                    ],
+                },
                 "orchestration_status": orchestration.status,
                 "authorised_evidence": [
                     source.model_dump(exclude_none=True) for source in catalog.values()
