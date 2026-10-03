@@ -1,11 +1,18 @@
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from rag.service import KnowledgeService, set_knowledge_service
 
 
-def test_health_reports_phase_one_readiness() -> None:
-    with TestClient(create_app()) as client:
-        response = client.get("/health")
+def test_health_reports_degraded_when_rag_is_unavailable(tmp_path) -> None:
+    unavailable = KnowledgeService(tmp_path / "missing-corpus", tmp_path / "missing-index")
+    unavailable.load()
+    set_knowledge_service(unavailable)
+    try:
+        with TestClient(create_app()) as client:
+            response = client.get("/health")
+    finally:
+        set_knowledge_service(None)
 
     assert response.status_code == 200
     assert response.json() == {
@@ -13,6 +20,23 @@ def test_health_reports_phase_one_readiness() -> None:
         "application": "meridian-compass",
         "mcp": "connected",
         "rag": "not_ready",
+    }
+
+
+def test_health_reports_ready_when_rag_is_loaded(built_rag_service) -> None:
+    set_knowledge_service(built_rag_service)
+    try:
+        with TestClient(create_app()) as client:
+            response = client.get("/health")
+    finally:
+        set_knowledge_service(None)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "healthy",
+        "application": "meridian-compass",
+        "mcp": "connected",
+        "rag": "ready",
     }
 
 

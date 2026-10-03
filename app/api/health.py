@@ -3,6 +3,8 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from rag.service import get_knowledge_service
+
 
 router = APIRouter(tags=["health"])
 
@@ -16,12 +18,13 @@ class HealthResponse(BaseModel):
 
 @router.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
-    """Report honest Phase-1 component readiness."""
+    """Report actual application, MCP, and RAG readiness."""
 
+    rag_ready = get_knowledge_service().is_ready
     return HealthResponse(
-        status="degraded",
+        status="healthy" if rag_ready else "degraded",
         application="meridian-compass",
         mcp="connected",
-        rag="not_ready",
+        rag="ready" if rag_ready else "not_ready",
     )
 

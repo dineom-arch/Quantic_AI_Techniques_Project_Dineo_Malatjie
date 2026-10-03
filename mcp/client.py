@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
@@ -28,4 +29,13 @@ class MeridianMCPClient:
                     DiscoveredTool(name=tool.name, description=tool.description)
                     for tool in result.tools
                 ]
+
+    async def call_tool(self, name: str, arguments: dict[str, Any]):
+        """Invoke a discovered MCP tool across Streamable HTTP."""
+
+        async with streamable_http_client(self.endpoint) as streams:
+            read_stream, write_stream = streams[:2]
+            async with ClientSession(read_stream, write_stream) as session:
+                await session.initialize()
+                return await session.call_tool(name, arguments)
 

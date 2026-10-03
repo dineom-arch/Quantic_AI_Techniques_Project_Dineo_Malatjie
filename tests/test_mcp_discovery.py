@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import socket
 from threading import Thread
 import time
@@ -10,6 +11,7 @@ import uvicorn
 
 from app.main import create_app
 from app.integrations.mcp_runtime import meridian_mcp_client_class
+from rag.service import set_knowledge_service
 
 
 def _free_port() -> int:
@@ -18,8 +20,9 @@ def _free_port() -> int:
         return int(sock.getsockname()[1])
 
 
-def test_streamable_http_mcp_discovery() -> None:
+def test_streamable_http_mcp_discovery_and_search(built_rag_service) -> None:
     port = _free_port()
+    set_knowledge_service(built_rag_service)
     app = create_app()
     config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
     server = uvicorn.Server(config)
@@ -38,10 +41,24 @@ def test_streamable_http_mcp_discovery() -> None:
             raise AssertionError("ASGI server did not become ready")
 
         client_class = meridian_mcp_client_class()
-        tools = asyncio.run(client_class(f"http://127.0.0.1:{port}/mcp/").discover_tools())
+        mcp_client = client_class(f"http://127.0.0.1:{port}/mcp/")
+        tools = asyncio.run(mcp_client.discover_tools())
         assert [tool.name for tool in tools] == ["search_knowledge_documents"]
+        tool_result = asyncio.run(
+            mcp_client.call_tool(
+                "search_knowledge_documents",
+                {"query": "PTO notice requirement", "document_type": "policy", "top_k": 3},
+            )
+        )
+        payload = tool_result.structuredContent
+        if payload is None:
+            payload = json.loads(tool_result.content[0].text)
+        assert payload["status"] == "ok"
+        assert len(payload["results"]) == 3
+        assert payload["results"][0]["document_id"] == "MSG-POL-001"
     finally:
         server.should_exit = True
         thread.join(timeout=10)
+        set_knowledge_service(None)
         assert not thread.is_alive()
 
