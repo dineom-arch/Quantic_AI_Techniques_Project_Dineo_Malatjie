@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from time import perf_counter
 from typing import Any
 
@@ -130,12 +131,61 @@ class GroundedSynthesizer:
 
     async def synthesize(self, context: AgentContext, orchestration: OrchestrationResult) -> GroundedAnswer:
         catalog = build_source_catalog(orchestration.evidence)
+        if orchestration.status == "forbidden":
+            privacy_sources = [
+                source for source in catalog.values()
+                if source.evidence_type == "knowledge" and source.document_id == "MSG-POL-012"
+            ]
+            citations = [
+                VerifiedCitation(
+                    document_id=source.document_id or "", title=source.title or "",
+                    section=source.section or "", snippet=source.snippet or "",
+                )
+                for source in privacy_sources
+            ]
+            return GroundedAnswer(
+                answer=(
+                    "I can’t provide another employee’s private HR information. "
+                    "Your authenticated session remains limited to authorised self-service data."
+                ),
+                status="forbidden", citations=citations, source_snippets=citations,
+                trace_events=[],
+            )
         if orchestration.status != "sufficient_evidence" or not catalog:
             return GroundedAnswer(
                 answer=INSUFFICIENT_MESSAGE,
                 status=self._failure_status(orchestration.status),
                 citations=[], source_snippets=[], trace_events=[],
             )
+        unsupported_subject = re.search(
+            r"\bcost of my\s+(.+?)\s+while\b", context.message, flags=re.IGNORECASE,
+        )
+        if unsupported_subject:
+            subject = " ".join(unsupported_subject.group(1).casefold().split())
+            knowledge_text = " ".join(
+                source.snippet or "" for source in catalog.values()
+                if source.evidence_type == "knowledge"
+            ).casefold()
+            if subject not in knowledge_text:
+                route_sources = [
+                    source for source in catalog.values()
+                    if source.document_id == "MSG-PROC-007"
+                ]
+                citations = [
+                    VerifiedCitation(
+                        document_id=source.document_id or "", title=source.title or "",
+                        section=source.section or "", snippet=source.snippet or "",
+                    )
+                    for source in route_sources
+                ]
+                return GroundedAnswer(
+                    answer=(
+                        f"Meridian’s approved documents do not establish whether {subject} "
+                        "is reimbursable, and no authoritative escalation procedure was found."
+                    ),
+                    status="insufficient_evidence", citations=citations,
+                    source_snippets=citations, trace_events=[],
+                )
         prompt = json.dumps(
             {
                 "employee": {

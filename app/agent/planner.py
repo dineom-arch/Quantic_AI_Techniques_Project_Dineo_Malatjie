@@ -9,6 +9,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict
 
 from app.agent.context import AgentContext
+from app.identity.runtime import identity_provider
 
 
 ToolKind = Literal["operational", "knowledge"]
@@ -57,6 +58,29 @@ def _mentioned_date(message: str, fallback: date) -> str:
     return fallback.isoformat()
 
 
+def _references_other_identity(text: str, context: AgentContext) -> bool:
+    """Recognise controlled identity references without using prompt identity as authority."""
+    for option in identity_provider.list_active_options():
+        if option.corporate_username == context.identity.corporate_username:
+            continue
+        identity = identity_provider.get_by_username(option.corporate_username)
+        if identity is None:
+            continue
+        references = {
+            identity.display_name.casefold(), identity.given_name.casefold(),
+            identity.surname.casefold(), identity.corporate_username.casefold(),
+            identity.employee_id.casefold(),
+        }
+        if any(re.search(rf"(?<![\w.-]){re.escape(value)}(?![\w.-])", text) for value in references):
+            return True
+    return False
+
+
+def _external_company_policy(text: str) -> bool:
+    match = re.search(r"\bwhat does\s+([a-z][\w&.-]*)['’]s\s+.+?policy\b", text)
+    return bool(match and match.group(1) not in {"meridian", "msg"})
+
+
 class DeterministicPlanner:
     """Maps bounded request language to evidence domains and approved tools."""
 
@@ -87,26 +111,79 @@ class DeterministicPlanner:
                 )
             )
 
+        if _external_company_policy(text):
+            return ExecutionPlan(intent="out_of_scope", domains=())
+
         pto = any(term in text for term in ("pto", "leave", "days off", "time off"))
+        flight_policy = any(
+            term in text for term in ("flight", "business class", "economy", "cabin class", "air travel")
+        ) or bool(re.search(r"\bfl(?:y|ying)\b", text))
         travel = any(
             term in text
-            for term in ("travel", "flight", "hotel", "itinerary", "return flight", "stay in")
+            for term in ("travel", "travelling", "flight", "hotel", "itinerary", "return flight", "stay in", "trip")
         )
-        personal_extension = travel and any(
-            term in text for term in ("extend", "extension", "stay", "change my return")
+        personal_extension = any(
+            term in text
+            for term in ("extend", "extension", "change my return", "stay until", "stay through", "stay after")
         )
-        assignment = "assignment" in text or personal_extension or (pto and "nairobi" in text)
-        expense = any(term in text for term in ("expense", "claim", "reimburse", "receipt"))
+        extension_information_only = any(
+            term in text for term in ("what would", "what do i need", "show me", "who would")
+        )
+        extension_situation = personal_extension and travel and not extension_information_only and any(
+            term in text
+            for term in (
+                "nairobi", "flight", "hotel", "itinerary", "stay", "assignment ends",
+                "create", "submit", "for me",
+            )
+        )
+        mentioned_calendar_date = bool(
+            re.search(r"\b20\d{2}-\d{2}-\d{2}\b", text)
+            or re.search(r"\b\d{1,2}(?:st|nd|rd|th)?(?:\s+and\s+\d{1,2})?\s+(?:" + "|".join(MONTHS) + r")\b", text)
+        )
+        explicit_assignment = bool(re.search(r"\bENG-\d+\b", context.message, re.IGNORECASE)) or any(
+            term in text for term in ("my assignment", "current assignment", "active assignment")
+        )
+        assignment = (
+            explicit_assignment or extension_situation
+            or (personal_extension and "travel extension" in text)
+            or (pto and mentioned_calendar_date)
+        )
+        expense = any(term in text for term in ("expense", "claim", "reimburse", "reimbursement", "receipt", "cost of my"))
+        unsupported_cost_subject = bool(re.search(r"\bcost of my\s+.+?\s+while\b", text))
+        taxi_expense = "taxi" in text or "ground transport" in text
+        meal_expense = any(term in text for term in ("meal", "dinner", "lunch", "breakfast"))
         benefits = any(term in text for term in ("benefit", "medical plan", "enrolled"))
-        per_diem = "per diem" in text
+        per_diem = "per diem" in text or (meal_expense and "nairobi" in text)
         security = "security" in text and travel
         remote = any(term in text for term in ("remote", "hybrid"))
         international_work = any(term in text for term in ("work from", "international work", "cross-border"))
-        privacy = any(term in text for term in ("another employee", "someone else's", "colleague's"))
-        support = any(term in text for term in ("gift", "hospitality", "escalat", "support route"))
+        identity_override_claim = any(
+            term in text for term in ("pretend i am", "pretend i'm", "i'm emp-", "i am emp-")
+        )
+        privacy = any(
+            term in text for term in ("another employee", "someone else's", "colleague's")
+        ) or (_references_other_identity(text, context) and not identity_override_claim)
+        support = unsupported_cost_subject or any(
+            term in text
+            for term in (
+                "gift", "hospitality", "escalat", "support route", "vip ticket",
+                "tickets offered", "client gave", "vendor gave", "entertainment",
+            )
+        )
+        profile = any(term in text for term in ("my profile", "job title", "job level", "who am i"))
+        flight_personal_context = flight_policy and any(
+            term in text for term in ("i'm", "i am", "can i", "my manager", "my approved")
+        )
+        approved_travel_context = flight_policy and "approved" in text and any(
+            term in text for term in ("travel", "travelling", "assignment")
+        )
 
-        if not any((pto, travel, assignment, expense, benefits, per_diem, security, remote, international_work, privacy, support)):
+        if not any((pto, travel, flight_policy, assignment, expense, benefits, per_diem, security, remote, international_work, privacy, support, profile, personal_extension)):
             return ExecutionPlan(intent="out_of_scope", domains=())
+
+        if profile and not pto:
+            add_domain("employee")
+            add_call("lookup_employee_profile", {"target": "self"}, "operational", "employee")
 
         if pto:
             add_domain("pto")
@@ -145,7 +222,8 @@ class DeterministicPlanner:
                 "knowledge", "assignment", ("MSG-POL-002",),
             )
 
-        if travel:
+        broad_travel = travel and not (flight_policy and not personal_extension) and not taxi_expense
+        if broad_travel or extension_situation:
             add_domain("business_travel")
             add_call("lookup_travel_authorization", {"target": "self"}, "operational", "travel")
             if personal_extension or any(term in text for term in ("booking", "hotel", "flight")):
@@ -161,13 +239,6 @@ class DeterministicPlanner:
                     {"query": "personal extension itinerary modification booking process", "document_type": "procedure", "top_k": 5, "topic": "travel"},
                     "knowledge", "travel", ("MSG-PROC-003",),
                 )
-            if any(term in text for term in ("flight", "cabin", "business class", "economy")):
-                add_domain("flight_booking")
-                add_call(
-                    "search_knowledge_documents",
-                    {"query": "flight booking cabin class fare requirements", "document_type": "policy", "top_k": 5, "topic": "travel"},
-                    "knowledge", "flight_booking", ("MSG-POL-004",),
-                )
             if any(term in text for term in ("hotel", "accommodation", "taxi", "ground transport")):
                 add_domain("accommodation_transport")
                 add_call(
@@ -175,6 +246,40 @@ class DeterministicPlanner:
                     {"query": "accommodation hotel ground transport requirements", "document_type": "policy", "top_k": 5, "topic": "travel"},
                     "knowledge", "accommodation_transport", ("MSG-POL-005",),
                 )
+
+        if taxi_expense:
+            add_domain("business_travel")
+            add_call("lookup_travel_authorization", {"target": "self"}, "operational", "travel")
+            add_call(
+                "search_knowledge_documents",
+                {"query": "taxi ground transport approved business locations", "document_type": "policy", "top_k": 5, "topic": "travel"},
+                "knowledge", "accommodation_transport", ("MSG-POL-005",),
+            )
+
+        if flight_policy:
+            add_domain("flight_booking")
+            if not extension_situation and flight_personal_context:
+                add_call("lookup_employee_profile", {"target": "self"}, "operational", "employee")
+            if not extension_situation and approved_travel_context:
+                add_call("lookup_travel_authorization", {"target": "self"}, "operational", "travel")
+            add_call(
+                "search_knowledge_documents",
+                {"query": "flight booking cabin class economy business class long haul duration exception", "document_type": "policy", "top_k": 5, "topic": "travel"},
+                "knowledge", "flight_booking", ("MSG-POL-004",),
+            )
+
+        if personal_extension and not extension_situation:
+            add_domain("business_travel_policy")
+            add_call(
+                "search_knowledge_documents",
+                {"query": "business travel personal extension eligibility cost approval", "document_type": "policy", "top_k": 5, "topic": "travel"},
+                "knowledge", "business_travel", ("MSG-POL-003",),
+            )
+            add_call(
+                "search_knowledge_documents",
+                {"query": "personal extension itinerary modification approval procedure", "document_type": "procedure", "top_k": 5, "topic": "travel"},
+                "knowledge", "business_travel", ("MSG-PROC-003",),
+            )
 
         if per_diem:
             add_domain("per_diem")
@@ -212,6 +317,8 @@ class DeterministicPlanner:
 
         if benefits:
             add_domain("benefits")
+            if "eligible" in text or "eligibility" in text:
+                add_call("lookup_employee_profile", {"target": "self"}, "operational", "employee")
             add_call("lookup_benefits_status", {"target": "self", "benefit_type": None}, "operational", "benefits")
             add_call(
                 "search_knowledge_documents",
