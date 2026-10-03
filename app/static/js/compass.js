@@ -16,15 +16,15 @@ const STATUS_LABELS = {
 };
 
 const TOOL_LABELS = {
-  search_knowledge_documents: "Search policy knowledge",
-  lookup_employee_profile: "Check employee profile",
-  check_pto_balance: "Check PTO balance",
-  lookup_active_assignment: "Check active assignment",
-  lookup_travel_authorization: "Check travel authorisation",
-  get_mock_travel_booking: "Retrieve travel booking",
-  get_per_diem_rate: "Retrieve per diem rate",
-  get_mock_expense_claim: "Retrieve expense claim",
-  resolve_approval_role: "Resolve approval role",
+  search_knowledge_documents: "Reviewed Meridian policy",
+  lookup_employee_profile: "Checked employee profile",
+  check_pto_balance: "Checked PTO balance",
+  lookup_active_assignment: "Checked active assignment",
+  lookup_travel_authorization: "Checked travel authorisation",
+  get_mock_travel_booking: "Checked travel booking",
+  get_per_diem_rate: "Checked per diem rate",
+  get_mock_expense_claim: "Checked expense claim",
+  resolve_approval_role: "Resolved approver",
   create_mock_travel_request: "Create mock travel request",
   create_mock_hr_ticket: "Create mock HR ticket",
 };
@@ -60,11 +60,29 @@ async function signIn() {
     state.sessionId = session.session_id;
     state.identity = { displayName: session.display_name, givenName: session.given_name, jobTitle: session.job_title };
     sessionStorage.setItem("meridianSession", JSON.stringify({ sessionId: state.sessionId, identity: state.identity }));
+    resetConversation();
     openApplication();
   } catch (_) {
     $("#login-error").textContent = "The demonstration session could not be started. Please try again.";
     $("#login-error").hidden = false; button.disabled = false;
   } finally { button.textContent = "Continue with Enterprise Identity"; }
+}
+
+function resetConversation() {
+  $("#messages").replaceChildren();
+  $("#welcome-state").hidden = false;
+  $("#view-compass").classList.add("empty-state");
+}
+
+function requireAuthentication(message) {
+  sessionStorage.removeItem("meridianSession");
+  state.sessionId = null; state.identity = null;
+  resetConversation();
+  $("#app-shell").hidden = true; $("#login-view").hidden = false;
+  $("#login-error").textContent = message;
+  $("#login-error").hidden = false;
+  $("#login-button").disabled = false;
+  $("#login-button").focus();
 }
 
 function openApplication() {
@@ -77,6 +95,7 @@ function openApplication() {
   $("#identity-initials").textContent = initials(displayName);
   $("#context-initials").textContent = initials(displayName);
   $("#context-name").textContent = displayName; $("#context-role").textContent = jobTitle;
+  $("#view-compass").classList.toggle("empty-state", $("#messages").children.length === 0);
   checkHealth(); $("#message-input").focus();
 }
 
@@ -100,6 +119,7 @@ function showView(name) {
 
 function addUserMessage(message) {
   $("#welcome-state").hidden = true;
+  $("#view-compass").classList.remove("empty-state");
   $("#messages").append(make("div", "message-user", message));
 }
 
@@ -151,6 +171,13 @@ async function sendMessage(message, confirmAction = false) {
   $("#loading-state").hidden = false; $("#send-button").disabled = true; $("#message-input").disabled = true;
   try {
     const payload = await requestJson("/chat", { method: "POST", body: JSON.stringify({ message: message.trim(), session_id: state.sessionId, confirm_action: confirmAction }) });
+    const sessionMissing = payload.status === "not_found" && payload.tool_trace.some(
+      (entry) => entry.event === "authenticated_identity_load" && entry.status === "not_found"
+    );
+    if (sessionMissing) {
+      requireAuthentication("Your Meridian Compass session expired. Continue with Enterprise Identity to sign in again.");
+      return;
+    }
     addAssistantMessage(payload);
   } catch (_) {
     addAssistantMessage({ answer: "Compass could not complete the request. Please check the service status and try again.", status: "tool_error", citations: [], tool_trace: [] });
@@ -159,9 +186,21 @@ async function sendMessage(message, confirmAction = false) {
   }
 }
 
-function restoreSession() {
-  try { const saved = JSON.parse(sessionStorage.getItem("meridianSession")); if (saved?.sessionId && saved?.identity) { state.sessionId = saved.sessionId; state.identity = saved.identity; openApplication(); return true; } } catch (_) { sessionStorage.removeItem("meridianSession"); }
-  return false;
+async function restoreSession() {
+  let saved;
+  try { saved = JSON.parse(sessionStorage.getItem("meridianSession")); } catch (_) { sessionStorage.removeItem("meridianSession"); }
+  if (!saved?.sessionId) return false;
+  try {
+    const session = await requestJson(`/auth/session/${encodeURIComponent(saved.sessionId)}`);
+    state.sessionId = session.session_id;
+    state.identity = { displayName: session.display_name, givenName: session.given_name, jobTitle: session.job_title };
+    sessionStorage.setItem("meridianSession", JSON.stringify({ sessionId: state.sessionId, identity: state.identity }));
+    openApplication();
+    return true;
+  } catch (_) {
+    requireAuthentication("Your previous Meridian Compass session expired. Continue with Enterprise Identity to sign in again.");
+    return false;
+  }
 }
 
 async function openTour() {
@@ -187,8 +226,7 @@ $("#close-tour-secondary").addEventListener("click", closeTour);
 $("#tour-modal").addEventListener("click", (event) => { if (event.target === $("#tour-modal")) closeTour(); });
 document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !$("#tour-modal").hidden) closeTour(); });
 $$(".nav-item").forEach((item) => item.addEventListener("click", () => showView(item.dataset.view)));
-$$(".prompt-card").forEach((card) => card.addEventListener("click", () => { $("#message-input").value = card.textContent.trim(); $("#message-input").focus(); }));
 $("#chat-form").addEventListener("submit", (event) => { event.preventDefault(); sendMessage($("#message-input").value); });
 $("#message-input").addEventListener("keydown", (event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); $("#chat-form").requestSubmit(); } });
 
-if (!restoreSession()) $("#login-button").focus();
+restoreSession().then((restored) => { if (!restored) $("#login-button").focus(); });

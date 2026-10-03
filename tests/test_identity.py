@@ -53,3 +53,45 @@ def test_session_identity_is_server_side_and_not_prompt_driven() -> None:
     assert "Liam Chen" not in serialized_response
     assert "EMP-1104" not in serialized_response
 
+
+def test_demo_session_validation_and_restart_recovery_remain_server_authoritative() -> None:
+    session_store.reset()
+    try:
+        with TestClient(create_app()) as client:
+            created = client.post("/auth/demo-session", json={
+                "corporate_username": "liam.chen",
+            }).json()
+            session_id = created["session_id"]
+            validated = client.get(f"/auth/session/{session_id}")
+            assert validated.status_code == 200
+            assert validated.json()["given_name"] == "Naledi"
+
+            accepted = client.post("/chat", json={
+                "session_id": session_id, "message": "What is my PTO balance?",
+            })
+            assert accepted.status_code == 200
+            assert accepted.json()["status"] != "not_found"
+
+            session_store.reset()
+            assert client.get(f"/auth/session/{session_id}").status_code == 404
+            expired = client.post("/chat", json={
+                "session_id": session_id, "message": "What is my PTO balance?",
+            }).json()
+            assert expired["status"] == "not_found"
+            assert expired["tool_trace"] == [{
+                "event": "authenticated_identity_load", "status": "not_found",
+            }]
+
+            replacement = client.post("/auth/demo-session", json={
+                "corporate_username": "liam.chen",
+            }).json()
+            assert replacement["given_name"] == "Naledi"
+            recovered = client.post("/chat", json={
+                "session_id": replacement["session_id"],
+                "message": "What is my PTO balance?",
+            })
+            assert recovered.status_code == 200
+            assert recovered.json()["status"] != "not_found"
+    finally:
+        session_store.reset()
+

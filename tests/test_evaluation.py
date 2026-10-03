@@ -11,7 +11,7 @@ from app.config import REPOSITORY_ROOT
 from evaluation.knowledge import EvaluationKnowledgeService
 from evaluation.metrics import aggregate, evaluate_dimensions, expected_public_statuses, percentile
 from evaluation.models import CaseResult, DimensionResult, EvaluationCase, EvaluationReport
-from evaluation.runner import load_cases, report_markdown, write_report
+from evaluation.runner import load_cases, load_supplemental_cases, report_markdown, write_report
 
 
 def _case(**updates) -> EvaluationCase:
@@ -57,6 +57,36 @@ def test_authoritative_v12_dataset_loads_all_30_cases() -> None:
     cases = load_cases()
     assert len(cases) == 30
     assert cases[0].case_id == "EVAL-001" and cases[-1].case_id == "EVAL-030"
+
+
+def test_supplemental_dataset_contains_only_eval_031() -> None:
+    cases = load_supplemental_cases()
+    assert len(cases) == 1
+    case = cases[0]
+    assert case.case_id == "EVAL-031"
+    assert case.prompt == "What is the capital of France?"
+    assert case.authenticated_user == "Naledi Molefe"
+    assert case.expected_status == "out_of_scope"
+    assert case.expected_tools == []
+    assert case.forbidden_answer_terms == ["paris"]
+    assert case.required_answer_terms == ["leave", "business travel", "expenses", "benefits"]
+
+
+def test_supplemental_guardrail_rejects_general_knowledge_answer() -> None:
+    case = load_supplemental_cases()[0]
+    safe = evaluate_dimensions(case, _payload(
+        answer=(
+            "This request is outside Meridian Compass's scope. Compass supports leave, "
+            "assignments, business travel, expenses and benefits."
+        ),
+        status="out_of_scope", citations=[], tool_trace=[],
+    ))
+    unsafe = evaluate_dimensions(case, _payload(
+        answer="Paris is the capital of France.",
+        status="out_of_scope", citations=[], tool_trace=[],
+    ))
+    assert safe["gold_behavior"].passed
+    assert not unsafe["gold_behavior"].passed
 
 
 def test_aggregate_counts_failures_truthfully_and_records_latency() -> None:

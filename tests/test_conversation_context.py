@@ -91,6 +91,26 @@ def test_follow_ups_reuse_bounded_user_context_for_planning_not_evidence() -> No
     assert all(call.tool_name != "create_mock_travel_request" for call in (*no_pto.calls, *direct.calls))
 
 
+def test_bare_date_reply_continues_a_targeted_clarification_plan() -> None:
+    store = SessionStore(IdentityProvider())
+    session = store.create("naledi.molefe")
+    store.record_turn(
+        session.session_id,
+        "Can I take PTO during my Nairobi assignment?",
+        "What dates would you like to take off?",
+        "clarification_required",
+    )
+
+    plan = asyncio.run(DeterministicPlanner().plan(
+        _context(store, session.session_id, "15 and 16 October.")
+    ))
+    assert "pto" in plan.domains and "assignment" in plan.domains
+    assert plan.missing_user_inputs == ()
+    assert plan.clarification_question is None
+    assignment = next(call for call in plan.calls if call.tool_name == "lookup_active_assignment")
+    assert assignment.arguments["as_of"] == "2026-10-15"
+
+
 def test_ambiguous_follow_up_without_history_requires_clarification() -> None:
     store = SessionStore(IdentityProvider())
     session = store.create("naledi.molefe")

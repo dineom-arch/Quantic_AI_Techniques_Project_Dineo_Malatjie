@@ -102,10 +102,7 @@ h2 { font-family: var(--serif); font-weight: 500; }
 .compass-mark { margin: 0; color: var(--blue); font-size: 2.4rem; }
 .welcome-state h2 { margin: .3rem 0; font-size: clamp(2rem,4vw,3rem); }
 .welcome-state > p:not(.compass-mark) { max-width: 620px; margin: .5rem auto 2rem; color: var(--muted); }
-.prompt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; text-align: left; }
 .tour-link { margin: 0 0 1.7rem; padding: .4rem .7rem; color: var(--blue); border: 1px solid #b9d8f4; background: var(--white); font-size: .82rem; font-weight: 700; }
-.prompt-card { min-height: 92px; padding: 1rem 1.1rem; color: var(--navy); border: 1px solid var(--line); background: rgba(255,255,255,.7); text-align: left; }
-.prompt-card:hover, .prompt-card.featured { border-color: #acdafa; background: #f1f9fe; }
 .messages { display: grid; gap: 1.4rem; }
 .message-user { justify-self: end; max-width: 75%; padding: .8rem 1rem; color: var(--white); background: var(--navy); border-radius: 14px 14px 3px 14px; }
 .message-assistant { display: grid; gap: 1rem; padding: 1.4rem; border: 1px solid var(--line); border-top: 3px solid var(--blue); background: var(--white); box-shadow: 0 8px 28px rgba(6,42,80,.05); }
@@ -140,6 +137,8 @@ h2 { font-family: var(--serif); font-weight: 500; }
 .send-button { float: right; display: grid; place-items: center; width: 42px; height: 42px; color: var(--white); border: 0; background: var(--blue); font-size: 1.3rem; }
 .send-button:disabled { opacity: .5; }
 .composer > p { clear: both; margin: .2rem .7rem; color: var(--muted); font-size: .66rem; }
+.empty-state .conversation { display: grid; place-items: center; min-height: calc(100vh - 116px); padding: 2rem 0 12rem; }
+.empty-state .composer { top: calc(50% + 125px); bottom: auto; }
 
 .page-header { display: block; }
 .page-header h1 { font-size: 3rem; }
@@ -196,9 +195,11 @@ h2 { font-family: var(--serif); font-weight: 500; }
   .workspace-header, .page-header { padding: 2rem 1.5rem; }
   .signed-in-context { display: none; }
   .conversation { padding-top: 2rem; }
-  .prompt-grid, .evidence-grid, .source-principles, .domain-grid { grid-template-columns: 1fr; }
+  .evidence-grid, .source-principles, .domain-grid { grid-template-columns: 1fr; }
   .message-user { max-width: 90%; }
   .composer { left: 50%; width: calc(100% - 1.5rem); }
+  .empty-state .conversation { min-height: calc(100vh - 92px); padding-bottom: 11rem; }
+  .empty-state .composer { top: calc(50% + 145px); }
   .context-panel dl { grid-template-columns: 1fr; }
   .tour-dialog { padding: 1.25rem; }
 }

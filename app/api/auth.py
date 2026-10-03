@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from app.identity.models import IdentityOption
 from app.identity.runtime import identity_provider, session_store
-from app.identity.session import IdentityNotFoundError
+from app.identity.session import IdentityNotFoundError, SessionNotFoundError
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -37,6 +37,21 @@ async def create_session(request: CreateSessionRequest) -> CreateSessionResponse
 async def create_demo_session() -> CreateSessionResponse:
     """Establish the configured flagship identity without browser selection."""
     return _create_session_response(DEFAULT_DEMO_USERNAME)
+
+
+@router.get("/session/{session_id}", response_model=CreateSessionResponse)
+async def validate_session(session_id: str) -> CreateSessionResponse:
+    """Validate browser session state against server-side identity authority."""
+    try:
+        identity = session_store.resolve(session_id)
+    except SessionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Authenticated session not found") from exc
+    return CreateSessionResponse(
+        session_id=session_id,
+        display_name=identity.display_name,
+        given_name=identity.given_name,
+        job_title=identity.job_title,
+    )
 
 
 def _create_session_response(corporate_username: str) -> CreateSessionResponse:

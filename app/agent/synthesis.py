@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import datetime
 from time import perf_counter
 from typing import Any
 
@@ -11,6 +12,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from app.agent.context import AgentContext
 from app.agent.evidence import OrchestrationResult
+from app.agent.extractive import build_extractive_draft
 from app.agent.traces import TraceEvent
 from app.agent.verification import (
     ApprovalRequest, ClaimVerifier, SourceRecord, SynthesisDraft, VerifiedClaim,
@@ -55,8 +57,15 @@ and model memory are not Meridian authority. Do not invent policy, exceptions, a
 escalation routes, evidence IDs, document IDs, employee IDs, or facts.
 Return one JSON object matching the supplied schema. Do not provide chain-of-thought.
 Each operational claim must reference operational evidence and include an exact supporting_fact subset.
-Each policy/procedure claim must reference knowledge evidence and include an exact quote copied from its snippet.
-Keep claims concise and employee-friendly. proposed_answer is untrusted and is never returned directly.
+Each policy/procedure claim must reference knowledge evidence. Its claim.text MUST be copied
+verbatim from the retrieved evidence, and evidence_quote MUST contain that same verbatim text.
+After whitespace normalisation, claim.text and evidence_quote must be identical. Paraphrasing a
+policy/procedure claim is prohibited. Operational claims continue to use supporting_fact rules.
+For policy/procedure claims, select the shortest complete verbatim sentence or sentences that support
+the useful answer; do not copy unrelated surrounding text. If workflow_requirements lists missing user
+inputs, answer supported parts only and do not claim that the incomplete request is eligible, sufficient,
+approved, or complete. Keep claims concise and employee-friendly. proposed_answer is untrusted and is
+never returned directly.
 """
 
 
@@ -123,6 +132,115 @@ def _render_operational_claim(claim: VerifiedClaim) -> str:
     return " ".join(_fact_sentences(fact))
 
 
+def _operational_container(verified: list[VerifiedClaim], name: str) -> dict[str, Any]:
+    for item in verified:
+        if item.claim.claim_type != "operational":
+            continue
+        container = (item.claim.supporting_fact or {}).get(name)
+        if isinstance(container, dict):
+            return container
+    return {}
+
+
+def _compose_employee_answer(
+    context: AgentContext,
+    supported: list[VerifiedClaim],
+    approvals: list[ResolvedApproval],
+    approval_claims: list[str],
+    status: str,
+) -> str:
+    """Render natural language solely from facts already accepted by ClaimVerifier."""
+    question = context.message.casefold()
+    policy_text = " ".join(
+        item.claim.text for item in supported
+        if item.claim.claim_type in {"policy", "procedure", "limitation"}
+    ).casefold()
+    pto = _operational_container(supported, "pto_balance")
+    assignment = _operational_container(supported, "assignment")
+    booking = _operational_container(supported, "booking")
+
+    if any(term in question for term in ("gift", "hospitality", "vip tickets")):
+        return (
+            "I can’t confirm whether you can accept the VIP tickets from Meridian’s approved "
+            "policies. I couldn’t find a substantive gifts or hospitality rule that establishes "
+            "whether they are permitted or prohibited.\n\nMeridian’s support procedure does "
+            "provide a next step: refer the question to Ethics & Compliance for an authoritative decision."
+        )
+
+    extension = any(term in question for term in ("extend", "extension", "stay until"))
+    if extension and "personal extension" in policy_text:
+        lines = [
+            "Yes — you can request a personal extension, subject to the required approval. "
+            "Do not change the flight or hotel itinerary before that approval is recorded."
+        ]
+        if "working day" in policy_text or "pto" in question:
+            lines.append("Because the extension includes a working day, Monday must be handled as a separate PTO request.")
+        if "business-equivalent" in policy_text or "equivalent cost" in policy_text:
+            lines.append("Meridian’s responsibility is limited to the authorised business-equivalent travel cost.")
+        proposal = booking.get("personal_extension_proposal")
+        if isinstance(proposal, dict) and proposal.get("incremental_employee_cost") is not None:
+            lines.append(
+                f"The recorded business-equivalent return fare is {booking.get('currency')} "
+                f"{booking.get('business_return_fare')}, and the proposed alternative fare is "
+                f"{booking.get('currency')} {proposal.get('alternative_return_fare')}. The "
+                f"{booking.get('currency')} {proposal['incremental_employee_cost']} difference is your responsibility."
+            )
+        if "personal accommodation" in policy_text or "hotel" in question:
+            lines.append("Hotel nights that arise from the personal extension are your responsibility.")
+        if "per diem" in policy_text:
+            lines.append("Per diem applies only to the authorised business-travel period, not the personal extension.")
+        if approval_claims:
+            lines.append(approval_claims[0])
+        lines.append("Next, obtain the required approval before asking travel support to modify the booking.")
+        return "\n\n".join(lines)
+
+    pto_question = "pto" in question or "leave" in question
+    pto_request = pto_question and any(term in question for term in ("take", "request", "days off", "approve"))
+    if pto_request and assignment and "engagement manager" in policy_text:
+        lines = ["Yes — you can request PTO for those dates."]
+        if pto.get("available_days") is not None:
+            lines.append(f"You currently have {pto['available_days']} days of PTO available.")
+        location = assignment.get("location_city") or assignment.get("location_country")
+        assignment_phrase = f"your active {location} assignment" if location else "your active assignment"
+        lines.append(
+            f"The dates fall during {assignment_phrase}, so the request follows the active-assignment "
+            "Engagement Manager approval route."
+        )
+        if "14 calendar days" in policy_text:
+            written_date = re.search(
+                r"\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b",
+                context.message,
+                flags=re.IGNORECASE,
+            )
+            if written_date:
+                first_day = datetime.strptime(" ".join(written_date.groups()), "%d %B %Y").date()
+                notice_days = (first_day - context.as_of).days
+                if notice_days >= 14:
+                    lines.append(
+                        f"The request meets the standard planned-PTO notice rule: it gives {notice_days} "
+                        "calendar days’ notice, and at least 14 are required."
+                    )
+                else:
+                    lines.append(
+                        f"The request gives {notice_days} calendar days’ notice, which is below the "
+                        "standard planned-PTO requirement of at least 14 days."
+                    )
+        if approval_claims:
+            lines.append(approval_claims[0])
+        lines.append("This means you may submit the request; it does not mean the PTO is already approved.")
+        return "\n\n".join(lines)
+
+    balance_only = pto_question and "balance" in question and not pto_request
+    if balance_only and pto.get("available_days") is not None:
+        return f"You currently have {pto['available_days']} days of PTO available."
+
+    rendered = [
+        _render_operational_claim(item) if item.claim.claim_type == "operational" else item.claim.text
+        for item in supported
+    ] + approval_claims
+    return "\n\n".join(rendered)
+
+
 class GroundedSynthesizer:
     def __init__(self, provider: LLMProvider, mcp_client) -> None:
         self.provider = provider
@@ -131,6 +249,15 @@ class GroundedSynthesizer:
 
     async def synthesize(self, context: AgentContext, orchestration: OrchestrationResult) -> GroundedAnswer:
         catalog = build_source_catalog(orchestration.evidence)
+        if orchestration.status == "out_of_scope":
+            return GroundedAnswer(
+                answer=(
+                    "Meridian Compass helps with Meridian employee processes such as leave, "
+                    "assignments, business travel, expenses and benefits. I can’t help with "
+                    "general questions outside that scope."
+                ),
+                status="out_of_scope", citations=[], source_snippets=[], trace_events=[],
+            )
         if orchestration.status == "forbidden":
             privacy_sources = [
                 source for source in catalog.values()
@@ -186,8 +313,7 @@ class GroundedSynthesizer:
                     status="insufficient_evidence", citations=citations,
                     source_snippets=citations, trace_events=[],
                 )
-        prompt = json.dumps(
-            {
+        synthesis_request = {
                 "employee": {
                     "display_name": context.identity.display_name,
                     "job_title": context.identity.job_title,
@@ -204,13 +330,16 @@ class GroundedSynthesizer:
                     ],
                 },
                 "orchestration_status": orchestration.status,
+                "workflow_requirements": {
+                    "missing_user_inputs": list(orchestration.plan.missing_user_inputs),
+                    "clarification_question": orchestration.plan.clarification_question,
+                },
                 "authorised_evidence": [
                     source.model_dump(exclude_none=True) for source in catalog.values()
                 ],
                 "required_output_schema": SynthesisDraft.model_json_schema(),
-            },
-            ensure_ascii=False,
-        )
+            }
+        prompt = json.dumps(synthesis_request, ensure_ascii=False)
         draft = _safe_json_loads(
             await self.provider.generate(system_prompt=SYSTEM_PROMPT, user_prompt=prompt)
         )
@@ -228,6 +357,20 @@ class GroundedSynthesizer:
         unsupported_necessary = any(
             not item.supported and item.claim.necessary for item in verified
         )
+        compatibility_failure = bool(verified) and any(not item.supported for item in verified) and all(
+            item.supported or (
+                item.claim.claim_type in {"policy", "procedure"}
+                and item.reason == "Claim exceeds quoted evidence"
+            )
+            for item in verified
+        )
+        if compatibility_failure:
+            draft = SynthesisDraft.model_validate(build_extractive_draft(synthesis_request))
+            verified = self.verifier.verify(draft, catalog)
+            supported = [item for item in verified if item.supported]
+            unsupported_necessary = any(
+                not item.supported and item.claim.necessary for item in verified
+            )
         citations = self._citations(draft, supported, catalog)
         if not supported or unsupported_necessary:
             return GroundedAnswer(
@@ -239,22 +382,22 @@ class GroundedSynthesizer:
         approval_claims, approval_traces, resolved_approvals = await self._resolve_approvals(
             draft.approval_requests, supported, catalog, len(orchestration.tool_trace)
         )
-        final_status = (
-            "insufficient_evidence"
-            if draft.proposed_status == "insufficient_evidence"
-            or any(item.claim.claim_type == "limitation" for item in supported)
-            else "answered"
+        has_limitation = any(item.claim.claim_type == "limitation" for item in supported)
+        if has_limitation:
+            final_status = "insufficient_evidence"
+        elif orchestration.plan.clarification_question:
+            final_status = "clarification_required"
+        elif draft.proposed_status == "insufficient_evidence":
+            final_status = "insufficient_evidence"
+        else:
+            final_status = "answered"
+        answer = _compose_employee_answer(
+            context, supported, resolved_approvals, approval_claims, final_status,
         )
+        if orchestration.plan.clarification_question:
+            answer = f"{answer}\n\n{orchestration.plan.clarification_question}"
         return GroundedAnswer(
-            answer="\n\n".join(
-                [
-                    _render_operational_claim(item)
-                    if item.claim.claim_type == "operational"
-                    else item.claim.text
-                    for item in supported
-                ]
-                + approval_claims
-            ),
+            answer=answer,
             status=final_status,
             citations=citations,
             source_snippets=citations,

@@ -66,6 +66,33 @@ def test_enterprise_signin_dynamic_greeting_and_product_tour_contract() -> None:
     assert 'requestJson("/auth/demo-session"' in script
 
 
+def test_authenticated_landing_is_open_conversation_without_prompt_cards() -> None:
+    html = Path("app/templates/index.html").read_text(encoding="utf-8")
+    script = Path("app/static/js/compass.js").read_text(encoding="utf-8")
+    combined = html + script
+
+    assert "prompt-card" not in combined
+    assert "Example questions" not in combined
+    assert "Can I take PTO during my Nairobi assignment?" not in combined
+    assert "Can I extend my Nairobi trip for personal travel?" not in combined
+    assert "What expenses can I claim from my business trip?" not in combined
+    assert "Who needs to approve my travel request?" not in combined
+    assert 'placeholder="Ask about people policy, travel or your work context…"' in html
+    assert 'class="view active-view empty-state"' in html
+    assert 'classList.remove("empty-state")' in script
+    css = Path("app/static/css/compass.css").read_text(encoding="utf-8")
+    assert ".empty-state .composer" in css
+    assert "bottom: auto" in css
+
+
+def test_employee_trace_uses_human_readable_completed_labels() -> None:
+    script = Path("app/static/js/compass.js").read_text(encoding="utf-8")
+    assert "Checked PTO balance" in script
+    assert "Checked active assignment" in script
+    assert "Reviewed Meridian policy" in script
+    assert "Resolved approver" in script
+
+
 def test_employee_facing_ui_has_no_account_chooser_or_employee_names() -> None:
     html = Path("app/templates/index.html").read_text(encoding="utf-8")
     script = Path("app/static/js/compass.js").read_text(encoding="utf-8")
@@ -108,6 +135,16 @@ def test_frontend_requests_are_bounded_and_loading_is_always_cleared() -> None:
     assert 'button.disabled = false' in script
     assert '$("#loading-state").hidden = true' in script
     assert '$("#send-button").disabled = false' in script
+
+
+def test_frontend_validates_restored_session_and_recovers_expired_chat_session() -> None:
+    script = Path("app/static/js/compass.js").read_text(encoding="utf-8")
+    assert "async function restoreSession()" in script
+    assert "`/auth/session/${encodeURIComponent(saved.sessionId)}`" in script
+    assert 'entry.event === "authenticated_identity_load"' in script
+    assert "requireAuthentication(" in script
+    assert 'sessionStorage.removeItem("meridianSession")' in script
+    assert "session expired" in script
 
 
 def test_chat_public_contract_remains_canonical() -> None:

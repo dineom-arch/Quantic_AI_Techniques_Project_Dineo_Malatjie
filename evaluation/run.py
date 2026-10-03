@@ -7,7 +7,12 @@ import json
 import logging
 from pathlib import Path
 
-from evaluation.runner import DEFAULT_RESULTS_DIRECTORY, EvaluationRunner, write_report
+from evaluation.runner import (
+    DEFAULT_RESULTS_DIRECTORY,
+    EvaluationRunner,
+    load_supplemental_cases,
+    write_report,
+)
 
 
 def _comparison_markdown(reports) -> str:
@@ -117,13 +122,32 @@ def execute(mode: str, output_dir: Path) -> dict[str, object]:
         print(
             f"Ablation: {before.results[0].actual_status} -> {after.results[0].actual_status}"
         )
+    if mode == "supplemental":
+        supplemental = EvaluationRunner(cases=load_supplemental_cases()).run(
+            top_k=5,
+            mode="supplemental-eval-031",
+            selected_case_ids={"EVAL-031"},
+        )
+        write_report(
+            supplemental,
+            output_dir / "supplemental_evaluation_results.json",
+            output_dir / "supplemental_evaluation_summary.md",
+        )
+        completed["supplemental"] = supplemental.aggregate.model_dump()
+        result = supplemental.results[0]
+        print(
+            f"Supplemental EVAL-031: {'PASS' if result.passed else 'FAIL'} "
+            f"({result.actual_status})"
+        )
     return completed
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run Meridian Compass controlled evaluation")
     parser.add_argument(
-        "--mode", choices=("all", "baseline", "top-k", "ablation"), default="all",
+        "--mode",
+        choices=("all", "baseline", "top-k", "ablation", "supplemental"),
+        default="all",
     )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_RESULTS_DIRECTORY)
     arguments = parser.parse_args()

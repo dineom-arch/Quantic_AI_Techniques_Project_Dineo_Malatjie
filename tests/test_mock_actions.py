@@ -120,7 +120,8 @@ def test_gifts_route_can_prepare_ticket_and_draft_without_inventing_rule(action_
         "message": "Create a ticket about whether I may accept a client gift.",
     }).json()
     assert proposed["status"] == "action_confirmation_required"
-    assert "substantive determination cannot be made" in proposed["answer"]
+    assert "can’t confirm whether you can accept" in proposed["answer"]
+    assert "Ethics & Compliance" in proposed["answer"]
     assert "Ethics & Compliance" in proposed["answer"]
     completed = client.post("/chat", json={
         "session_id": session, "message": "Yes, create the ticket.",

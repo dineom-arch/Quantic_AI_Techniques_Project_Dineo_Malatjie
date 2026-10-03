@@ -19,6 +19,8 @@ class EvaluationCase(BaseModel):
     expected_status: str
     must_not: list[str]
     metrics: list[str]
+    forbidden_answer_terms: list[str] = Field(default_factory=list)
+    required_answer_terms: list[str] = Field(default_factory=list)
     evaluation_as_of: str | None = None
     session_dependency: str | None = None
 

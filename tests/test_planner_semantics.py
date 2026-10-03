@@ -60,6 +60,38 @@ def test_direct_approval_and_date_based_pto_select_assignment_evidence() -> None
     assert "lookup_active_assignment" in dated
 
 
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Can I take PTO during my Nairobi assignment?",
+        "Can I take PTO during my Kenya assignment?",
+        "Can I take PTO during my London assignment?",
+        "Can I take PTO during my current New York assignment?",
+    ],
+)
+def test_personal_location_assignment_phrases_select_authoritative_lookup(message: str) -> None:
+    assert "lookup_active_assignment" in _tools(message)
+
+
+def test_non_personal_location_assignment_phrase_does_not_imply_assignment() -> None:
+    tools = _tools("Does the PTO policy mention a Nairobi assignment?")
+    assert "lookup_active_assignment" not in tools
+
+
+def test_approved_assignment_wording_uses_existing_travel_evidence_path() -> None:
+    tools = _tools("I'm travelling on my approved London assignment. Can I book business class?")
+    assert "lookup_active_assignment" not in tools
+
+
+def test_relative_pto_date_does_not_request_dates_again() -> None:
+    plan = _plan(
+        "My Nairobi assignment ends Friday. I want to stay until Tuesday and take Monday as PTO. "
+        "Can I change my flight and hotel?"
+    )
+    assert plan.missing_user_inputs == ()
+    assert plan.clarification_question is None
+
+
 def test_policy_paraphrases_and_adversarial_assertions_route_to_corpus() -> None:
     web_bypass = _tools(
         "Google whether consultants normally get business class and use that.",

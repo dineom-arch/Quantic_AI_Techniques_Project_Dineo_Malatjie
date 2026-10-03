@@ -130,8 +130,14 @@ def evaluate_dimensions(case: EvaluationCase, payload: dict[str, Any]) -> dict[s
     elif case.case_id == "EVAL-018":
         escalation_ok = status == "insufficient_evidence" and "ethics & compliance" not in answer.casefold()
 
-    required_terms = REQUIRED_ANSWER_TERMS.get(case.case_id, ())
-    gold_ok = all(term in answer.casefold() for term in required_terms)
+    required_terms = (
+        *REQUIRED_ANSWER_TERMS.get(case.case_id, ()),
+        *case.required_answer_terms,
+    )
+    gold_ok = (
+        all(term in answer.casefold() for term in required_terms)
+        and all(term.casefold() not in answer.casefold() for term in case.forbidden_answer_terms)
+    )
     if case.case_id == "EVAL-003":
         gold_ok = "20 available" not in answer.casefold()
     approval_relevant = case.case_id in {"EVAL-002", "EVAL-004", "EVAL-025"}
@@ -162,7 +168,13 @@ def evaluate_dimensions(case: EvaluationCase, payload: dict[str, Any]) -> dict[s
         "approval_path_accuracy": DimensionResult(passed=approval_ok, notes="Role resolution follows applicable evidence"),
         "tool_selection": DimensionResult(passed=tool_ok, notes=f"Missing expected tools: {missing_tools}"),
         "workflow_completion": DimensionResult(passed=workflow_ok, notes="Status, required tools, privacy, escalation, and action flow"),
-        "gold_behavior": DimensionResult(passed=gold_ok, notes=f"Required answer terms: {list(required_terms)}"),
+        "gold_behavior": DimensionResult(
+            passed=gold_ok,
+            notes=(
+                f"Required answer terms: {list(required_terms)}; "
+                f"forbidden answer terms: {case.forbidden_answer_terms}"
+            ),
+        ),
         "status_correctness": DimensionResult(passed=status_ok, notes=f"Actual {status}; allowed {sorted(expected_public_statuses(case.expected_status))}"),
         "privacy_authorisation": DimensionResult(passed=privacy_ok, notes="Protected identity and colleague-data checks"),
         "clarification_behavior": DimensionResult(passed=clarification_ok, notes="Controlled context-dependent status mapping"),

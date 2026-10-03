@@ -51,7 +51,7 @@
     </aside>
 
     <main id="main-content" class="workspace" tabindex="-1">
-      <section id="view-compass" class="view active-view" aria-labelledby="compass-heading">
+      <section id="view-compass" class="view active-view empty-state" aria-labelledby="compass-heading">
         <header class="workspace-header compact-header">
           <div>
             <h1 id="compass-heading">Meridian Compass</h1>
@@ -66,12 +66,6 @@
             <h2 id="welcome-heading">What can I help you with?</h2>
             <p>Ask me about your leave, assignments, business travel, expenses, benefits or other supported employee processes.</p>
             <button id="open-tour" class="tour-link" type="button">▶ Watch 1-minute tour</button>
-            <div class="prompt-grid" aria-label="Example questions">
-              <button class="prompt-card" type="button">Can I take PTO during my Nairobi assignment?</button>
-              <button class="prompt-card featured" type="button">Can I extend my Nairobi trip for personal travel?</button>
-              <button class="prompt-card" type="button">What expenses can I claim from my business trip?</button>
-              <button class="prompt-card" type="button">Who needs to approve my travel request?</button>
-            </div>
           </section>
           <div id="messages" class="messages"></div>
           <div id="loading-state" class="loading-state" role="status" hidden>
@@ -128,6 +122,6 @@
   <!-- Future tour story: meet Compass; ask naturally; check approved information;
        get a useful grounded answer; confirm a supported mock next step; close with
        “Less searching. More doing.” The tour never replaces live functionality. -->
-  <script src="/static/js/compass.js?v=9" defer></script>
+  <script src="/static/js/compass.js?v=10" defer></script>
 </body>
 </html>

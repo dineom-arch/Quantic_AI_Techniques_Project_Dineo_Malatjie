@@ -33,6 +33,8 @@ class ExecutionPlan(BaseModel):
     intent: str
     domains: tuple[str, ...]
     calls: tuple[PlannedToolCall, ...] = ()
+    missing_user_inputs: tuple[str, ...] = ()
+    clarification_question: str | None = None
 
 
 MONTHS = {
@@ -89,8 +91,14 @@ FOLLOW_UP_MARKERS = (
 
 def _planning_text(context: AgentContext) -> tuple[str, bool]:
     current = context.message.casefold()
-    is_follow_up = any(marker in current for marker in FOLLOW_UP_MARKERS) or bool(
-        re.match(r"^\s*(it|that|and|then)\b", current)
+    awaiting_clarification = bool(
+        context.conversation_history
+        and context.conversation_history[-1].assistant_status == "clarification_required"
+    )
+    is_follow_up = (
+        awaiting_clarification
+        or any(marker in current for marker in FOLLOW_UP_MARKERS)
+        or bool(re.match(r"^\s*(it|that|and|then)\b", current))
     )
     if not is_follow_up:
         return current, False
@@ -190,8 +198,26 @@ class DeterministicPlanner:
             re.search(r"\b20\d{2}-\d{2}-\d{2}\b", text)
             or re.search(r"\b\d{1,2}(?:st|nd|rd|th)?(?:\s+and\s+\d{1,2})?\s+(?:" + "|".join(MONTHS) + r")\b", text)
         )
-        explicit_assignment = bool(re.search(r"\bENG-\d+\b", context.message, re.IGNORECASE)) or any(
-            term in text for term in ("my assignment", "current assignment", "active assignment")
+        mentioned_relative_date = bool(
+            re.search(
+                r"\b(?:today|tomorrow|next\s+)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
+                text,
+            )
+        )
+        located_personal_assignment = bool(
+            re.search(
+                r"\bmy\s+(?:current\s+)?(?!(?:approved|active|client)\b)"
+                r"(?:[a-z][a-z'-]*\s+){1,2}assignment\b",
+                text,
+            )
+        )
+        explicit_assignment = (
+            bool(re.search(r"\bENG-\d+\b", context.message, re.IGNORECASE))
+            or located_personal_assignment
+            or any(
+                term in text
+                for term in ("my assignment", "current assignment", "active assignment")
+            )
         )
         assignment = (
             explicit_assignment or extension_situation
@@ -398,5 +424,24 @@ class DeterministicPlanner:
                     "knowledge", name, expected,
                 )
 
+        missing_user_inputs: tuple[str, ...] = ()
+        clarification_question: str | None = None
+        pto_request_decision = pto and (
+            located_personal_assignment
+            or any(
+                phrase in text
+                for phrase in ("can i take pto", "request pto", "take pto", "take leave")
+            )
+        )
+        if pto_request_decision and not (mentioned_calendar_date or mentioned_relative_date):
+            missing_user_inputs = ("pto_dates",)
+            clarification_question = "What dates would you like to take off?"
+
         intent = "multi_step_workflow" if len(domains) > 1 else "evidence_retrieval"
-        return ExecutionPlan(intent=intent, domains=tuple(domains), calls=tuple(calls))
+        return ExecutionPlan(
+            intent=intent,
+            domains=tuple(domains),
+            calls=tuple(calls),
+            missing_user_inputs=missing_user_inputs,
+            clarification_question=clarification_question,
+        )

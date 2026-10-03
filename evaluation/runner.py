@@ -28,6 +28,9 @@ from rag.service import KnowledgeService, set_knowledge_service
 
 
 DATASET_PATH = REPOSITORY_ROOT / "project_docs" / "evaluation" / "02_evaluation_dataset_v1_2.json"
+SUPPLEMENTAL_DATASET_PATH = (
+    REPOSITORY_ROOT / "project_docs" / "evaluation" / "04_supplemental_evaluation_dataset_v1_2.json"
+)
 DEFAULT_RESULTS_DIRECTORY = REPOSITORY_ROOT / "evaluation" / "results"
 
 
@@ -37,6 +40,15 @@ def load_cases(path: Path = DATASET_PATH) -> list[EvaluationCase]:
         raise ValueError(f"Authoritative v1.2 evaluation dataset must contain 30 cases, found {len(cases)}")
     if len({case.case_id for case in cases}) != len(cases):
         raise ValueError("Evaluation case IDs must be unique")
+    return cases
+
+
+def load_supplemental_cases(
+    path: Path = SUPPLEMENTAL_DATASET_PATH,
+) -> list[EvaluationCase]:
+    cases = TypeAdapter(list[EvaluationCase]).validate_json(path.read_text(encoding="utf-8"))
+    if [case.case_id for case in cases] != ["EVAL-031"]:
+        raise ValueError("Supplemental dataset must contain only EVAL-031")
     return cases
 
 
