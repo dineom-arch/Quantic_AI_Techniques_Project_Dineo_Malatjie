@@ -1,0 +1,90 @@
+[
+  {
+    "employee_id": "EMP-1007",
+    "display_name": "Naledi Molefe",
+    "job_title": "Senior Consultant",
+    "employee_group": "client-facing",
+    "function": "Consulting",
+    "home_office": "Johannesburg",
+    "home_country": "South Africa",
+    "manager_id": "EMP-1052",
+    "employment_status": "active"
+  },
+  {
+    "employee_id": "EMP-1052",
+    "display_name": "Amara Okafor",
+    "job_title": "Manager",
+    "employee_group": "client-facing",
+    "function": "Consulting",
+    "home_office": "Johannesburg",
+    "home_country": "South Africa",
+    "manager_id": "EMP-1021",
+    "employment_status": "active"
+  },
+  {
+    "employee_id": "EMP-1021",
+    "display_name": "David Mensah",
+    "job_title": "Partner",
+    "employee_group": "client-facing",
+    "function": "Consulting",
+    "home_office": "Johannesburg",
+    "home_country": "South Africa",
+    "manager_id": null,
+    "employment_status": "active"
+  },
+  {
+    "employee_id": "EMP-1104",
+    "display_name": "Liam Chen",
+    "job_title": "Analyst",
+    "employee_group": "client-facing",
+    "function": "Consulting",
+    "home_office": "Singapore",
+    "home_country": "Singapore",
+    "manager_id": "EMP-1052",
+    "employment_status": "active"
+  },
+  {
+    "employee_id": "EMP-1201",
+    "display_name": "Thabo Nkosi",
+    "job_title": "Partner",
+    "employee_group": "client-facing",
+    "function": "Consulting",
+    "home_office": "Johannesburg",
+    "home_country": "South Africa",
+    "manager_id": null,
+    "employment_status": "active"
+  },
+  {
+    "employee_id": "EMP-1302",
+    "display_name": "Sofia Martins",
+    "job_title": "HR Manager",
+    "employee_group": "enablement",
+    "function": "People Operations",
+    "home_office": "Johannesburg",
+    "home_country": "South Africa",
+    "manager_id": null,
+    "employment_status": "active"
+  },
+  {
+    "employee_id": "EMP-1401",
+    "display_name": "Priya Shah",
+    "job_title": "Finance Manager",
+    "employee_group": "enablement",
+    "function": "Finance",
+    "home_office": "Johannesburg",
+    "home_country": "South Africa",
+    "manager_id": null,
+    "employment_status": "active"
+  },
+  {
+    "employee_id": "EMP-1501",
+    "display_name": "Daniel Brooks",
+    "job_title": "IT Support Manager",
+    "employee_group": "enablement",
+    "function": "Information Technology",
+    "home_office": "Johannesburg",
+    "home_country": "South Africa",
+    "manager_id": null,
+    "employment_status": "active"
+  }
+]

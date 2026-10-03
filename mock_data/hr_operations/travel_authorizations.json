@@ -1,0 +1,49 @@
+[
+  {
+    "travel_authorization_id": "TA-3012",
+    "employee_id": "EMP-1007",
+    "assignment_id": "ENG-2045",
+    "origin_city": "Johannesburg",
+    "origin_country": "South Africa",
+    "destination_city": "Nairobi",
+    "destination_country": "Kenya",
+    "departure_date": "2026-09-13",
+    "business_return_date": "2026-10-16",
+    "purpose": "Client assignment travel",
+    "status": "approved",
+    "approved_by": "EMP-1052",
+    "approved_at": "2026-09-02T10:30:00Z"
+  },
+  {
+    "travel_authorization_id": "TA-3110",
+    "employee_id": "EMP-1104",
+    "assignment_id": "ENG-2110",
+    "origin_city": "Singapore",
+    "origin_country": "Singapore",
+    "destination_city": "London",
+    "destination_country": "United Kingdom",
+    "departure_date": "2026-10-04",
+    "business_return_date": "2026-10-24",
+    "purpose": "Client assignment travel",
+    "scheduled_flight_duration_hours": 13.5,
+    "status": "approved",
+    "approved_by": "EMP-1052",
+    "approved_at": "2026-09-25T08:00:00Z"
+  },
+  {
+    "travel_authorization_id": "TA-3111",
+    "employee_id": "EMP-1201",
+    "assignment_id": "ENG-2111",
+    "origin_city": "Johannesburg",
+    "origin_country": "South Africa",
+    "destination_city": "London",
+    "destination_country": "United Kingdom",
+    "departure_date": "2026-10-04",
+    "business_return_date": "2026-10-24",
+    "purpose": "Client assignment travel",
+    "scheduled_flight_duration_hours": 11.0,
+    "status": "approved",
+    "approved_by": "EMP-1021",
+    "approved_at": "2026-09-25T08:15:00Z"
+  }
+]

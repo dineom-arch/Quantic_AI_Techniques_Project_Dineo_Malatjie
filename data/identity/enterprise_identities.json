@@ -1,0 +1,82 @@
+[
+  {
+    "identity_id": "IDN-1007",
+    "corporate_username": "naledi.molefe",
+    "display_name": "Naledi Molefe",
+    "given_name": "Naledi",
+    "surname": "Molefe",
+    "employee_id": "EMP-1007",
+    "job_title": "Senior Consultant",
+    "account_status": "active"
+  },
+  {
+    "identity_id": "IDN-1052",
+    "corporate_username": "amara.okafor",
+    "display_name": "Amara Okafor",
+    "given_name": "Amara",
+    "surname": "Okafor",
+    "employee_id": "EMP-1052",
+    "job_title": "Manager",
+    "account_status": "active"
+  },
+  {
+    "identity_id": "IDN-1021",
+    "corporate_username": "david.mensah",
+    "display_name": "David Mensah",
+    "given_name": "David",
+    "surname": "Mensah",
+    "employee_id": "EMP-1021",
+    "job_title": "Partner",
+    "account_status": "active"
+  },
+  {
+    "identity_id": "IDN-1104",
+    "corporate_username": "liam.chen",
+    "display_name": "Liam Chen",
+    "given_name": "Liam",
+    "surname": "Chen",
+    "employee_id": "EMP-1104",
+    "job_title": "Analyst",
+    "account_status": "active"
+  },
+  {
+    "identity_id": "IDN-1201",
+    "corporate_username": "thabo.nkosi",
+    "display_name": "Thabo Nkosi",
+    "given_name": "Thabo",
+    "surname": "Nkosi",
+    "employee_id": "EMP-1201",
+    "job_title": "Partner",
+    "account_status": "active"
+  },
+  {
+    "identity_id": "IDN-1302",
+    "corporate_username": "sofia.martins",
+    "display_name": "Sofia Martins",
+    "given_name": "Sofia",
+    "surname": "Martins",
+    "employee_id": "EMP-1302",
+    "job_title": "HR Manager",
+    "account_status": "active"
+  },
+  {
+    "identity_id": "IDN-1401",
+    "corporate_username": "priya.shah",
+    "display_name": "Priya Shah",
+    "given_name": "Priya",
+    "surname": "Shah",
+    "employee_id": "EMP-1401",
+    "job_title": "Finance Manager",
+    "account_status": "active"
+  },
+  {
+    "identity_id": "IDN-1501",
+    "corporate_username": "daniel.brooks",
+    "display_name": "Daniel Brooks",
+    "given_name": "Daniel",
+    "surname": "Brooks",
+    "employee_id": "EMP-1501",
+    "job_title": "IT Support Manager",
+    "account_status": "active"
+  }
+]

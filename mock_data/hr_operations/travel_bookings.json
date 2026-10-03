@@ -1,0 +1,61 @@
+[
+  {
+    "booking_id": "TB-4012",
+    "employee_id": "EMP-1007",
+    "travel_authorization_id": "TA-3012",
+    "assignment_id": "ENG-2045",
+    "status": "confirmed",
+    "origin_city": "Johannesburg",
+    "destination_city": "Nairobi",
+    "departure_date": "2026-09-13",
+    "return_date": "2026-10-16",
+    "cabin_class": "economy",
+    "currency": "ZAR",
+    "business_return_fare": 8400,
+    "hotel_name": "Harbour View Nairobi",
+    "hotel_check_in": "2026-09-13",
+    "hotel_check_out": "2026-10-16",
+    "personal_extension_proposal": {
+      "proposed_return_date": "2026-10-20",
+      "alternative_return_fare": 9650,
+      "incremental_employee_cost": 1250,
+      "status": "proposed_not_approved"
+    }
+  },
+  {
+    "booking_id": "TB-4110",
+    "employee_id": "EMP-1104",
+    "travel_authorization_id": "TA-3110",
+    "assignment_id": "ENG-2110",
+    "status": "confirmed",
+    "origin_city": "Singapore",
+    "destination_city": "London",
+    "departure_date": "2026-10-04",
+    "return_date": "2026-10-24",
+    "cabin_class": "economy",
+    "currency": "SGD",
+    "business_return_fare": 1850,
+    "hotel_name": "Meridian House London",
+    "hotel_check_in": "2026-10-04",
+    "hotel_check_out": "2026-10-24",
+    "personal_extension_proposal": null
+  },
+  {
+    "booking_id": "TB-4111",
+    "employee_id": "EMP-1201",
+    "travel_authorization_id": "TA-3111",
+    "assignment_id": "ENG-2111",
+    "status": "confirmed",
+    "origin_city": "Johannesburg",
+    "destination_city": "London",
+    "departure_date": "2026-10-04",
+    "return_date": "2026-10-24",
+    "cabin_class": "business",
+    "currency": "ZAR",
+    "business_return_fare": 48500,
+    "hotel_name": "Meridian House London",
+    "hotel_check_in": "2026-10-04",
+    "hotel_check_out": "2026-10-24",
+    "personal_extension_proposal": null
+  }
+]

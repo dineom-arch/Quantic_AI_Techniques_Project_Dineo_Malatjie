@@ -1,0 +1,22 @@
+[
+  {
+    "per_diem_rate_id": "PD-KE-001",
+    "country": "Kenya",
+    "city": "Nairobi",
+    "currency": "USD",
+    "daily_rate": 85,
+    "includes_meals": true,
+    "effective_date": "2026-01-01",
+    "end_date": null
+  },
+  {
+    "per_diem_rate_id": "PD-GB-001",
+    "country": "United Kingdom",
+    "city": "London",
+    "currency": "GBP",
+    "daily_rate": 75,
+    "includes_meals": true,
+    "effective_date": "2026-01-01",
+    "end_date": null
+  }
+]

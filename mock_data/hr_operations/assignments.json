@@ -1,0 +1,44 @@
+[
+  {
+    "assignment_id": "ENG-2045",
+    "employee_id": "EMP-1007",
+    "client_name": "Asteria Financial Services",
+    "project_name": "Regional Operating Model Transformation",
+    "location_city": "Nairobi",
+    "location_country": "Kenya",
+    "start_date": "2026-09-14",
+    "end_date": "2026-10-16",
+    "engagement_manager_id": "EMP-1052",
+    "engagement_partner_id": "EMP-1021",
+    "charge_code": "AFS-ROM-26",
+    "status": "active"
+  },
+  {
+    "assignment_id": "ENG-2110",
+    "employee_id": "EMP-1104",
+    "client_name": "Northstar Retail Group",
+    "project_name": "European Growth Diagnostic",
+    "location_city": "London",
+    "location_country": "United Kingdom",
+    "start_date": "2026-10-05",
+    "end_date": "2026-10-23",
+    "engagement_manager_id": "EMP-1052",
+    "engagement_partner_id": "EMP-1021",
+    "charge_code": "NRG-EGD-26",
+    "status": "active"
+  },
+  {
+    "assignment_id": "ENG-2111",
+    "employee_id": "EMP-1201",
+    "client_name": "Northstar Retail Group",
+    "project_name": "European Growth Diagnostic",
+    "location_city": "London",
+    "location_country": "United Kingdom",
+    "start_date": "2026-10-05",
+    "end_date": "2026-10-23",
+    "engagement_manager_id": null,
+    "engagement_partner_id": "EMP-1201",
+    "charge_code": "NRG-EGD-26",
+    "status": "active"
+  }
+]

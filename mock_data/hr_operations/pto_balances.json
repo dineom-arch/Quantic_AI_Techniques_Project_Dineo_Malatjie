@@ -1,0 +1,52 @@
+[
+  {
+    "pto_record_id": "PTO-1007",
+    "employee_id": "EMP-1007",
+    "leave_year": 2026,
+    "entitlement_days": 25,
+    "used_days": 10,
+    "pending_days": 0,
+    "available_days": 15,
+    "last_updated": "2026-09-30"
+  },
+  {
+    "pto_record_id": "PTO-1052",
+    "employee_id": "EMP-1052",
+    "leave_year": 2026,
+    "entitlement_days": 25,
+    "used_days": 8,
+    "pending_days": 2,
+    "available_days": 15,
+    "last_updated": "2026-09-30"
+  },
+  {
+    "pto_record_id": "PTO-1021",
+    "employee_id": "EMP-1021",
+    "leave_year": 2026,
+    "entitlement_days": 25,
+    "used_days": 12,
+    "pending_days": 0,
+    "available_days": 13,
+    "last_updated": "2026-09-30"
+  },
+  {
+    "pto_record_id": "PTO-1104",
+    "employee_id": "EMP-1104",
+    "leave_year": 2026,
+    "entitlement_days": 20,
+    "used_days": 6,
+    "pending_days": 1,
+    "available_days": 13,
+    "last_updated": "2026-09-30"
+  },
+  {
+    "pto_record_id": "PTO-1201",
+    "employee_id": "EMP-1201",
+    "leave_year": 2026,
+    "entitlement_days": 25,
+    "used_days": 9,
+    "pending_days": 0,
+    "available_days": 16,
+    "last_updated": "2026-09-30"
+  }
+]

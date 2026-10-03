@@ -1,0 +1,144 @@
+{
+  "corpus_name": "Meridian Strategy Group Knowledge Corpus",
+  "version": "1.0",
+  "effective_date": "2026-01-01",
+  "documents": [
+    {
+      "document_id": "MSG-POL-001",
+      "title": "PTO & Leave Policy",
+      "document_type": "policy",
+      "topic": "leave",
+      "owner": "People Operations"
+    },
+    {
+      "document_id": "MSG-PROC-001",
+      "title": "PTO Request & Approval Procedure",
+      "document_type": "procedure",
+      "topic": "leave",
+      "owner": "People Operations"
+    },
+    {
+      "document_id": "MSG-POL-002",
+      "title": "Assignment & Staffing Policy",
+      "document_type": "policy",
+      "topic": "assignment",
+      "owner": "Consulting Operations"
+    },
+    {
+      "document_id": "MSG-PROC-002",
+      "title": "Assignment Change & Release Procedure",
+      "document_type": "procedure",
+      "topic": "assignment",
+      "owner": "Consulting Operations"
+    },
+    {
+      "document_id": "MSG-POL-003",
+      "title": "Business Travel Policy",
+      "document_type": "policy",
+      "topic": "travel",
+      "owner": "Travel & Operations"
+    },
+    {
+      "document_id": "MSG-PROC-003",
+      "title": "Business Travel Booking Procedure",
+      "document_type": "procedure",
+      "topic": "travel",
+      "owner": "Travel & Operations"
+    },
+    {
+      "document_id": "MSG-POL-004",
+      "title": "Flight Booking Policy",
+      "document_type": "policy",
+      "topic": "travel",
+      "owner": "Travel & Operations"
+    },
+    {
+      "document_id": "MSG-POL-005",
+      "title": "Accommodation & Ground Transport Policy",
+      "document_type": "policy",
+      "topic": "travel",
+      "owner": "Travel & Operations"
+    },
+    {
+      "document_id": "MSG-POL-006",
+      "title": "Per Diem Policy",
+      "document_type": "policy",
+      "topic": "travel",
+      "owner": "Finance"
+    },
+    {
+      "document_id": "MSG-POL-007",
+      "title": "Expense & Reimbursement Policy",
+      "document_type": "policy",
+      "topic": "expenses",
+      "owner": "Finance"
+    },
+    {
+      "document_id": "MSG-PROC-004",
+      "title": "Expense Submission & Travel Reconciliation Procedure",
+      "document_type": "procedure",
+      "topic": "expenses",
+      "owner": "Finance"
+    },
+    {
+      "document_id": "MSG-POL-008",
+      "title": "International Working Policy",
+      "document_type": "policy",
+      "topic": "international_work",
+      "owner": "People Operations / Risk"
+    },
+    {
+      "document_id": "MSG-PROC-005",
+      "title": "International Work Approval Procedure",
+      "document_type": "procedure",
+      "topic": "international_work",
+      "owner": "People Operations"
+    },
+    {
+      "document_id": "MSG-POL-009",
+      "title": "Information Security While Travelling Policy",
+      "document_type": "policy",
+      "topic": "security",
+      "owner": "Information Security"
+    },
+    {
+      "document_id": "MSG-POL-010",
+      "title": "Benefits Policy",
+      "document_type": "policy",
+      "topic": "benefits",
+      "owner": "People Operations"
+    },
+    {
+      "document_id": "MSG-POL-011",
+      "title": "Remote & Hybrid Working Policy",
+      "document_type": "policy",
+      "topic": "working_arrangements",
+      "owner": "People Operations"
+    },
+    {
+      "document_id": "MSG-PROC-006",
+      "title": "Equipment & Technology Procedure",
+      "document_type": "procedure",
+      "topic": "technology",
+      "owner": "Information Technology"
+    },
+    {
+      "document_id": "MSG-POL-012",
+      "title": "Employee Data Access & Privacy Policy",
+      "document_type": "policy",
+      "topic": "privacy",
+      "owner": "People Operations / Privacy"
+    },
+    {
+      "document_id": "MSG-PROC-007",
+      "title": "Enterprise Support & Escalation Procedure",
+      "document_type": "procedure",
+      "topic": "enterprise_support",
+      "owner": "Enterprise Operations"
+    }
+  ],
+  "corpus_version": "1.1",
+  "canonical_document_count": 19,
+  "rendered_page_count": 58,
+  "rendered_pdf_directory": "rendered_corpus_pdfs"
+}

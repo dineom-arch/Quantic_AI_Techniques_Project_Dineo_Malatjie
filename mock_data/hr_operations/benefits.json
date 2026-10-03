@@ -1,0 +1,29 @@
+[
+  {
+    "benefit_record_id": "BEN-1007",
+    "employee_id": "EMP-1007",
+    "benefit_code": "MEDICAL",
+    "benefit_name": "MSG Medical Plan",
+    "eligibility_status": "eligible",
+    "enrollment_status": "enrolled",
+    "effective_date": "2026-01-01"
+  },
+  {
+    "benefit_record_id": "BEN-1104",
+    "employee_id": "EMP-1104",
+    "benefit_code": "MEDICAL",
+    "benefit_name": "MSG Medical Plan",
+    "eligibility_status": "eligible",
+    "enrollment_status": "not_enrolled",
+    "effective_date": "2026-01-01"
+  },
+  {
+    "benefit_record_id": "BEN-1201",
+    "employee_id": "EMP-1201",
+    "benefit_code": "MEDICAL",
+    "benefit_name": "MSG Medical Plan",
+    "eligibility_status": "eligible",
+    "enrollment_status": "enrolled",
+    "effective_date": "2026-01-01"
+  }
+]

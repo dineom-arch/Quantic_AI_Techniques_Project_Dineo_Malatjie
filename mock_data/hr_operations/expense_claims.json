@@ -1,0 +1,28 @@
+[
+  {
+    "expense_claim_id": "EXP-5012",
+    "employee_id": "EMP-1007",
+    "assignment_id": "ENG-2045",
+    "travel_authorization_id": "TA-3012",
+    "expense_date": "2026-10-08",
+    "category": "ground_transport",
+    "description": "Taxi from client office to business hotel",
+    "amount": 2200,
+    "currency": "KES",
+    "receipt_attached": true,
+    "status": "draft"
+  },
+  {
+    "expense_claim_id": "EXP-5013",
+    "employee_id": "EMP-1007",
+    "assignment_id": "ENG-2045",
+    "travel_authorization_id": "TA-3012",
+    "expense_date": "2026-10-08",
+    "category": "meal",
+    "description": "Dinner during assignment",
+    "amount": 3200,
+    "currency": "KES",
+    "receipt_attached": true,
+    "status": "draft"
+  }
+]
