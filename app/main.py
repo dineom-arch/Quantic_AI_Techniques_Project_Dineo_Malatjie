@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+import logging
 from typing import AsyncIterator
 
 from fastapi import FastAPI
@@ -15,9 +16,11 @@ from app.api.ui import router as ui_router
 from app.config import REPOSITORY_ROOT
 from app.integrations.mcp_runtime import create_mcp_server
 from app.llm.provider import get_llm_provider
+from rag.service import get_knowledge_service
 
 
 _DEFAULT_PROVIDER = object()
+logger = logging.getLogger(__name__)
 
 
 def create_app(llm_provider=_DEFAULT_PROVIDER) -> FastAPI:
@@ -25,6 +28,20 @@ def create_app(llm_provider=_DEFAULT_PROVIDER) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        knowledge_service = get_knowledge_service()
+        if knowledge_service.is_ready:
+            logger.info(
+                "RAG ready: corpus_path=%s vector_store_path=%s",
+                knowledge_service.corpus_path,
+                knowledge_service.index_path,
+            )
+        else:
+            logger.error(
+                "RAG not ready: corpus_path=%s vector_store_path=%s error=%s",
+                knowledge_service.corpus_path,
+                knowledge_service.index_path,
+                knowledge_service.error,
+            )
         async with mcp_server.session_manager.run():
             yield
 
