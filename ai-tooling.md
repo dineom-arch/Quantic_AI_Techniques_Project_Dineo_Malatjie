@@ -57,21 +57,6 @@ Windows/Python 3.14 monolithic test process terminated without a pytest
 summary; the supported Python 3.12 GitHub Actions result remained the
 authoritative full-suite validation.
 
-## Antigravity
-
-An Antigravity architecture-review prompt was prepared in the controlled
-project artefacts. At the time this document was created, Antigravity
-had **not yet modified the final implementation**.
-
-Its intended remaining role is architecture assurance and diagram
-review: checking that visual artefacts accurately represent the
-implemented web app, orchestrator, MCP boundary, RAG, structured data,
-LLM provider, verification layer and deployment.
-
-If Antigravity is used before submission, this section should be updated
-with the exact review and accepted/rejected recommendations. It should
-not be credited with work it did not perform.
-
 ## Human oversight and verification
 
 AI output was not accepted as proof. Verification included: - controlled
