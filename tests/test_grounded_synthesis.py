@@ -404,6 +404,8 @@ class LiveStyleParaphrasingProvider:
         for claim in draft["claims"]:
             if claim["claim_type"] in {"policy", "procedure"}:
                 claim["text"] = "A paraphrased policy conclusion that is not an extractive quotation."
+            elif claim["claim_type"] == "operational":
+                claim["supporting_fact"] = {"misplaced_container": claim["supporting_fact"]}
         return json.dumps(draft)
 
 

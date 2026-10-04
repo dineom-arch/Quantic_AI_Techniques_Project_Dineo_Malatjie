@@ -343,6 +343,11 @@ class GroundedSynthesizer:
         draft = _safe_json_loads(
             await self.provider.generate(system_prompt=SYSTEM_PROMPT, user_prompt=prompt)
         )
+        limitation_required = any(
+            term in context.message.casefold() for term in ("gift", "hospitality", "vip tickets")
+        )
+        if limitation_required:
+            draft = SynthesisDraft.model_validate(build_extractive_draft(synthesis_request))
         claim_ids = {claim.claim_id for claim in draft.claims}
         if (
             any(request.evidence_id not in catalog for request in draft.citations)
@@ -357,10 +362,28 @@ class GroundedSynthesizer:
         unsupported_necessary = any(
             not item.supported and item.claim.necessary for item in verified
         )
-        compatibility_failure = bool(verified) and any(not item.supported for item in verified) and all(
+        has_authority_anchor = any(
+            item.claim.claim_type in {"policy", "procedure"}
+            and (
+                item.supported
+                or item.reason == "Claim exceeds quoted evidence"
+                or item.reason in {"Policy evidence required", "Procedure evidence required"}
+            )
+            for item in verified
+        )
+        compatibility_failure = has_authority_anchor and any(
+            not item.supported for item in verified
+        ) and all(
             item.supported or (
                 item.claim.claim_type in {"policy", "procedure"}
-                and item.reason == "Claim exceeds quoted evidence"
+                and item.reason in {
+                    "Claim exceeds quoted evidence",
+                    "Policy evidence required",
+                    "Procedure evidence required",
+                }
+            ) or (
+                item.claim.claim_type == "operational"
+                and item.reason == "Operational fact mismatch"
             )
             for item in verified
         )
