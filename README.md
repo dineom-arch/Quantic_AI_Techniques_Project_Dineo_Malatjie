@@ -222,3 +222,8 @@ combine into grounded cost and next-step guidance.
 -   `ai-tooling.md`
 -   `deployed.md`
 -   `evaluation/summary.md`
+
+## Project Demonstration
+
+- **Recorded Demo Video:** [Watch the 7-10 minute application demonstration](https://drive.google.com/file/d/158xzIbdMliU_-pGDlWhef9z8dBRp32I5/view?usp=drive_link)
+- **Presentation:** [View the Meridian Compass project presentation](https://drive.google.com/file/d/1GObRSo4kCxs7QY6nL2QVuSiV5orgICGE/view?usp=drive_link)
